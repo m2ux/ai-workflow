@@ -4,30 +4,56 @@ Witnessing allows the system to observe and react to on-chain events, including 
 
 ### Chain-agnostic witnessing capabilities required by DEX operations
 
-- **Deterministic event model and idempotency**: Ingest blocks/transactions deterministically and emit deposit/egress events exactly once despite restarts or replays.
-- **Finality and reorg tolerance**: Apply configurable confirmation depth and reorg handling so upstream state never regresses.
-- **Deposit abstraction**: Uniform interface to discover, attribute, and validate deposits across chains (address parsing, amount thresholds, asset identity).
-- **Egress confirmation tracking**: Correlate broadcast transactions and mark items complete only after finality; handle change accounting.
-- **Tracked-data pipeline to state chain**: Periodic submission of compact chain metrics (height, fees/limits, replay tokens) used by pallets and builders.
-- **Throughput and backpressure**: Chunked processing and bounded buffering to maintain stable latency under variable block/tx rates.
-- **Persistence and recovery**: Durable storage of processed ranges/watermarks and necessary ephemeral context for safe resumption.
-- **Resilience and reliability**: Retry/backoff around RPC, multi-endpoint failover, and health checks to withstand node outages.
-- **Normalization and validation**: Strict address/asset normalization and basic structural validation to avoid false positives/negatives.
-- **Security and resource safeguards**: Input size limits, spam resistance, and safe parsing to mitigate DoS vectors.
-- **Configurability**: Per-chain constants (confirmation depth, witness period, fee sampling cadence) and feature flags for environment differences.
-- **Testability**: Mocks/simulators for RPC and chain streams; deterministic tests for deposit classification and egress confirmation.
-- **Observability and auditability**: Structured logs, metrics, and optional audit trails for critical state transitions (deposits/settlements).
+See the Tier 1 and Tier 2 sections below for the detailed capability lists and per-chain support matrices.
 
-- **Backfill and gap repair**: Detect ingest gaps after downtime and re-scan historical ranges deterministically, reconciling without duplicate event emission.
-- **Scheduling, isolation, and fairness**: Per-chain concurrency limits and fair work queues so a slow/failed chain cannot starve others or block different work types.
-- **Endpoint diversity and optional quorum**: Multiple providers per chain (primary/backup) with configurable selection and optional cross-checks for critical reads.
-- **Circuit breakers and health gating**: Gate state updates and event emission behind health checks; pause/resume per chain when lag or error rates breach thresholds.
-- **Latency SLOs and staleness detection**: Track end-to-end detection latency; raise alerts or degrade gracefully when SLOs are exceeded or ingest becomes stale.
-- **Exactly-once publishing semantics**: Define idempotency keys for deposits and egress confirmations; ensure retries to the state chain remain idempotent.
-- **Runtime safety toggles**: Safe-mode controls per chain and feature (deposits, egress, tracking) to isolate incidents without full downtime.
-- **Schema/versioning for tracked data**: Forward/backward-compatible schema and migrations so pallet/builder upgrades do not break witness submissions.
-- **Resource safeguards and isolation**: Per-chain CPU/memory budgets, bounded batch sizes, and dynamic backpressure to protect node and worker stability.
-- **Auditable replay**: Ability to replay from retained chain data and produce identical outputs using deterministic pipelines and pinned configuration snapshots.
+### Tier 1: Required for correctness/MVP
+
+Legend: ✓ supported, ✗ not supported, ~ partial
+
+| Capability | Summary | Bitcoin | Ethereum | Polkadot | Arbitrum | Cardano |
+| --- | --- | --- | --- | --- | --- | --- |
+| Deterministic/idempotent event model | Ingest deterministically and emit deposit/egress events exactly once despite restarts. | ✓ | ✓ | ✓ | ✓ | ~ [P1] |
+| Finality and reorg tolerance | Apply confirmation depth and reorg handling so upstream state never regresses. | ✓ | ✓ | ✓ | ✓ | ~ [P2] |
+| Deposit discovery (ingress) | Discover, attribute, and validate deposits uniformly (addresses, thresholds, asset identity). | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Egress confirmation tracking | Correlate broadcasts and mark complete only after finality; account for change. | ✓ | ✓ | ~ [P3] | ✓ | ✗ |
+| Tracked-data pipeline to state chain | Submit compact chain metrics (height, fees/limits, replay tokens) used by pallets/builders. | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Throughput and backpressure | Process in chunks with bounded buffering to maintain stable latency. | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Persistence and recovery (watermarks) | Durable processed ranges/watermarks and ephemeral context for safe resumption. | ✓ | ✓ | ✓ | ✓ | ~ [P4] |
+| Retry/backoff + health checks | Wrap RPC with retries/backoff and basic health checks for resilience. | ✓ | ✓ | ✓ | ✓ | ~ [P5] |
+| Address/asset normalization/validation | Strict normalization/validation to avoid false positives/negatives. | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Configurability (confirmations, periods) | Per-chain constants (confirmations, witness period, fee sampling cadence) and feature flags. | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+### Tier 2: Operational excellence/Production
+
+Legend: ✓ supported, ✗ not supported, ~ partial
+
+| Capability | Summary | Bitcoin | Ethereum | Polkadot | Arbitrum | Cardano |
+| --- | --- | --- | --- | --- | --- | --- |
+| Observability (metrics/logs/audit hooks) | Structured logs, metrics, and optional audit trails for critical state transitions. | ✓ | ✓ | ✓ | ✓ | ~ [P6] |
+| Backfill and gap repair | Detect gaps after downtime and re-scan historical ranges deterministically without duplicates. | ~ [P7] | ~ [P7] | ~ [P7] | ~ [P7] | ✗ |
+| Scheduling, isolation, and fairness | Per-chain concurrency limits and fair work queues to prevent starvation across chains/work types. | ~ [P13] | ~ [P13] | ~ [P13] | ~ [P13] | ✗ |
+| Endpoint diversity/failover (primary/backup) | Multiple providers per chain (primary/backup) with optional cross-checks for critical reads. | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Circuit breakers/health gating | Gate state updates and event emission behind health; pause/resume on lag/error thresholds. | ~ [P8] | ~ [P8] | ~ [P8] | ~ [P8] | ✗ |
+| Latency SLOs and staleness detection | Track end-to-end latency; alert or degrade gracefully when SLOs are exceeded. | ~ [P14] | ~ [P14] | ~ [P14] | ~ [P14] | ✗ |
+| Exactly-once publishing semantics | End-to-end idempotency guarantees for state-chain submissions under retries. | ~ [P9] | ~ [P9] | ~ [P9] | ~ [P9] | ✗ |
+| Runtime safety toggles (safe mode) | Safe-mode controls per chain/feature (deposits, egress, tracking) to isolate incidents. | ~ [P10] | ~ [P10] | ~ [P10] | ~ [P10] | ✗ |
+| Schema/versioning for tracked data | Forward/backward-compatible schemas and migrations to avoid upgrade breakage. | ~ [P11] | ~ [P11] | ~ [P11] | ~ [P11] | ✗ |
+| Resource safeguards and isolation | Per-chain CPU/memory budgets, bounded batch sizes, dynamic backpressure. | ~ [P8] | ~ [P8] | ~ [P8] | ~ [P8] | ✗ |
+| Auditable deterministic replay | Deterministic replay from retained chain data with pinned configuration snapshots. | ~ [P12] | ~ [P12] | ~ [P12] | ~ [P12] | ✗ |
+
+Notes on partial support
+- [P1] Cardano: idempotency infra (processed ranges, DB) exists engine-wide, but Cardano witnessing pipeline not yet wired to use it.
+- [P2] Cardano: confirmation depth/lag-safety patterns are available, but Chain Sync-driven finality gating is not implemented.
+- [P3] Polkadot: egress confirmation semantics differ (Substrate extrinsics/state), partial coverage in current witness modules; deeper reconciliation may be needed per call type.
+- [P4] Cardano: persistent key/value and bitmap utilities exist; no Cardano-specific integration yet.
+- [P5] Cardano: retry/backoff implemented for RPC client; health gating and multi-endpoint failover not yet.
+- [P6] Cardano: logging/metrics plumbing available at engine level; no Cardano-specific metrics emitted by a witness pipeline yet.
+- [P7] All chains: backfill usually achieved via persisted watermarks and re-scan; explicit gap-detection and automated repair is partial.
+- [P8] All chains: health checks exist; gating (pause/resume) is available in parts of the stack but not uniformly enforced across all witness paths.
+- [P9] All chains: exactly-once is achieved practically via dedup/watermarks; end-to-end idempotency across state-chain submissions varies by call path.
+- [P10] All chains: safe-mode toggles exist in runtime; witness components integrate partially and not for every feature domain.
+- [P11] All chains: tracked-data types are stable within versions; explicit versioned schema evolution/migrations are partial.
+- [P12] All chains: deterministic replay possible with retained chain data and configs; standardized replay tooling is partial.
 
 ### Purpose and required characteristics for DEX functionality (informed by BTC/ETH)
 

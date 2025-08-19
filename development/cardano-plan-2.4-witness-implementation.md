@@ -22,38 +22,38 @@ Legend: ✓ supported, ✗ not supported, ~ partial
 | Retry/backoff + health checks | Wrap RPC with retries/backoff and basic health checks for resilience. | ✓ | ✓ | ✓ | ✓ | ~ [P5] |
 | Address/asset normalization/validation | Strict normalization/validation to avoid false positives/negatives. | ✓ | ✓ | ✓ | ✓ | ✗ |
 | Configurability (confirmations, periods) | Per-chain constants (confirmations, witness period, fee sampling cadence) and feature flags. | ✓ | ✓ | ✓ | ✓ | ✓ |
-
-### Tier 2: Operational excellence/Production
-
-Legend: ✓ supported, ✗ not supported, ~ partial
-
-| Capability | Summary | Bitcoin | Ethereum | Polkadot | Arbitrum | Cardano |
-| --- | --- | --- | --- | --- | --- | --- |
 | Observability (metrics/logs/audit hooks) | Structured logs, metrics, and optional audit trails for critical state transitions. | ✓ | ✓ | ✓ | ✓ | ~ [P6] |
-| Backfill and gap repair | Detect gaps after downtime and re-scan historical ranges deterministically without duplicates. | ~ [P7] | ~ [P7] | ~ [P7] | ~ [P7] | ✗ |
-| Scheduling, isolation, and fairness | Per-chain concurrency limits and fair work queues to prevent starvation across chains/work types. | ~ [P13] | ~ [P13] | ~ [P13] | ~ [P13] | ✗ |
 | Endpoint diversity/failover (primary/backup) | Multiple providers per chain (primary/backup) with optional cross-checks for critical reads. | ✓ | ✓ | ✓ | ✓ | ✗ |
-| Circuit breakers/health gating | Gate state updates and event emission behind health; pause/resume on lag/error thresholds. | ~ [P8] | ~ [P8] | ~ [P8] | ~ [P8] | ✗ |
-| Latency SLOs and staleness detection | Track end-to-end latency; alert or degrade gracefully when SLOs are exceeded. | ~ [P14] | ~ [P14] | ~ [P14] | ~ [P14] | ✗ |
-| Exactly-once publishing semantics | End-to-end idempotency guarantees for state-chain submissions under retries. | ~ [P9] | ~ [P9] | ~ [P9] | ~ [P9] | ✗ |
-| Runtime safety toggles (safe mode) | Safe-mode controls per chain/feature (deposits, egress, tracking) to isolate incidents. | ~ [P10] | ~ [P10] | ~ [P10] | ~ [P10] | ✗ |
+| Per-chain concurrency limits | Limit concurrent submissions per chain to avoid overload. | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Manual backfill via watermark re-scan | Re-scan historical ranges using persisted watermarks to repair gaps. | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Automated gap detection and repair | Detect downtime gaps automatically and repair by targeted re-scan. | ~ [P7] | ~ [P7] | ~ [P7] | ~ [P7] | ✗ |
+| Fairness scheduler across chains/work types | Ensure fair progress across chains and deposit/egress tasks. | ~ [P13] | ~ [P13] | ~ [P13] | ~ [P13] | ✗ |
+| Automated circuit breakers (pause/resume gating) | Pause/resume pipelines based on health/lag thresholds. | ~ [P8] | ~ [P8] | ~ [P8] | ~ [P8] | ✗ |
+| Formal SLOs and staleness alerting | Define/enforce latency SLOs with standardized alerts. | ~ [P14] | ~ [P14] | ~ [P14] | ~ [P14] | ✗ |
+| End-to-end idempotent state-chain publishing | Strong idempotency across retries for all submission paths. | ~ [P9] | ~ [P9] | ~ [P9] | ~ [P9] | ✗ |
+| Runtime safety toggles (safe mode) | Consistent safe-mode controls across all witness paths. | ~ [P10] | ~ [P10] | ~ [P10] | ~ [P10] | ✗ |
 | Schema/versioning for tracked data | Forward/backward-compatible schemas and migrations to avoid upgrade breakage. | ~ [P11] | ~ [P11] | ~ [P11] | ~ [P11] | ✗ |
-| Resource safeguards and isolation | Per-chain CPU/memory budgets, bounded batch sizes, dynamic backpressure. | ~ [P8] | ~ [P8] | ~ [P8] | ~ [P8] | ✗ |
-| Auditable deterministic replay | Deterministic replay from retained chain data with pinned configuration snapshots. | ~ [P12] | ~ [P12] | ~ [P12] | ~ [P12] | ✗ |
+| Per-chain CPU/memory quotas and isolation | Enforce per-chain resource limits beyond batching/backpressure. | ~ [P8] | ~ [P8] | ~ [P8] | ~ [P8] | ✗ |
+| Standardized auditable replay tooling | Unified tooling/process to replay and audit events deterministically. | ~ [P12] | ~ [P12] | ~ [P12] | ~ [P12] | ✗ |
 
-Notes on partial support
-- [P1] Cardano: idempotency infra (processed ranges, DB) exists engine-wide, but Cardano witnessing pipeline not yet wired to use it.
-- [P2] Cardano: confirmation depth/lag-safety patterns are available, but Chain Sync-driven finality gating is not implemented.
-- [P3] Polkadot: egress confirmation semantics differ (Substrate extrinsics/state), partial coverage in current witness modules; deeper reconciliation may be needed per call type.
-- [P4] Cardano: persistent key/value and bitmap utilities exist; no Cardano-specific integration yet.
-- [P5] Cardano: retry/backoff implemented for RPC client; health gating and multi-endpoint failover not yet.
-- [P6] Cardano: logging/metrics plumbing available at engine level; no Cardano-specific metrics emitted by a witness pipeline yet.
-- [P7] All chains: backfill usually achieved via persisted watermarks and re-scan; explicit gap-detection and automated repair is partial.
-- [P8] All chains: health checks exist; gating (pause/resume) is available in parts of the stack but not uniformly enforced across all witness paths.
-- [P9] All chains: exactly-once is achieved practically via dedup/watermarks; end-to-end idempotency across state-chain submissions varies by call path.
-- [P10] All chains: safe-mode toggles exist in runtime; witness components integrate partially and not for every feature domain.
-- [P11] All chains: tracked-data types are stable within versions; explicit versioned schema evolution/migrations are partial.
-- [P12] All chains: deterministic replay possible with retained chain data and configs; standardized replay tooling is partial.
+Notes on partial support (Tier 1)
+
+| ID | Summary | Partiality dimension | Rationale |
+| --- | --- | --- | --- |
+| P1 | Cardano: idempotency infra (processed ranges, DB) exists engine-wide, but Cardano witnessing pipeline not yet wired to use it. | By blockchain (Cardano); pipeline wiring status | Core correctness on other chains is proven; Cardano remains safe by not emitting until wired. Once connected, watermarks prevent duplicates. |
+| P2 | Cardano: confirmation depth/lag-safety patterns are available, but Chain Sync-driven finality gating is not implemented. | By blockchain (Cardano); finality gating mechanism | Prevents premature commits; withholding updates until depth is honored preserves correctness at the cost of latency. |
+| P3 | Polkadot: egress confirmation semantics differ (Substrate extrinsics/state), partial coverage in current witness modules; deeper reconciliation may be needed per call type. | By blockchain (Polkadot); by call type (egress paths) | Affects completeness of confirmations on DOT paths only; Cardano/BTC/ETH unaffected; correctness maintained by not marking done early. |
+| P4 | Cardano: persistent key/value and bitmap utilities exist; no Cardano-specific integration yet. | By blockchain (Cardano); persistence integration | Without this wiring Cardano witness won’t progress; other chains unaffected; once wired, exact-once is preserved by watermarks. |
+| P5 | Cardano: retry/backoff implemented for RPC client; health gating and multi-endpoint failover not yet. | By blockchain (Cardano); sub-feature (health gating, endpoint failover) | Impacts availability not correctness; retries may churn but state is guarded by finality/idempotency. |
+| P6 | Cardano: logging/metrics plumbing available at engine level; no Cardano-specific metrics emitted by a witness pipeline yet. | By blockchain (Cardano); chain-specific metrics | Observability gap; does not affect state transitions or DEX correctness. |
+| P7 | All chains: backfill usually achieved via persisted watermarks and re-scan; explicit gap-detection and automated repair is partial. | Cross-chain; automation vs manual orchestration | Deposits/egresses during downtime are recoverable via manual re-scan; possible delay but no loss or duplication. |
+| P8 | All chains: health checks exist; gating (pause/resume) is available in parts of the stack but not uniformly enforced across all witness paths. | Cross-chain; enforcement coverage across witness paths | Ops may need to pause manually; retries may waste cycles, but finality/idempotency prevent bad state. |
+| P9 | All chains: exactly-once is achieved practically via dedup/watermarks; end-to-end idempotency across state-chain submissions varies by call path. | By call path; submission endpoints | Harmless re-submits may occur; pallets dedupe; correctness preserved. |
+| P10 | All chains: safe-mode toggles exist in runtime; witness components integrate partially and not for every feature domain. | Cross-chain; coverage across witness features and chains | Incident isolation may be less granular; core guards (finality/validation) still protect state. |
+| P11 | All chains: tracked-data types are stable within versions; explicit versioned schema evolution/migrations are partial. | Cross-chain; release/upgrade process | Upgrade cadence may require coordination; live flows unaffected when versions are stable. |
+| P12 | All chains: deterministic replay possible with retained chain data and configs; standardized replay tooling is partial. | Cross-chain; tooling maturity | Affects audit/forensics speed, not live operation. |
+| P13 | All chains: basic isolation via chunking/backpressure exists; no explicit fairness scheduler across chains/work types. | Cross-chain; scheduler design (no global fairness) | Latency/backlog can skew under load; per-chain concurrency prevents starvation; no correctness risk. |
+| P14 | All chains: metrics exist to infer latency; formal SLO targets and standardized staleness alerting are not universally implemented. | Cross-chain; observability/SLO policy | Issues may be detected later without SLOs; state remains correct once processed. |
 
 ### Purpose and required characteristics for DEX functionality (informed by BTC/ETH)
 

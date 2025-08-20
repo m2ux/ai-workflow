@@ -1,12 +1,58 @@
 # Phase 2.4: Witness Implementation (Cardano)
 
-Witnessing allows the system to observe and react to on-chain events, including committee rotations and vault operations. Following the Bitcoin pattern, this involves querying Cardano blocks, filtering transactions relevant to the system, and recording UTXO changes on-chain. The implementation handles Cardano's block structure and transaction format while integrating with the existing witnessing infrastructure. Library selection between Cardano serialization lib and Pallas requires evaluation based on project needs.
+Witnessing allows the system to observe and react to on-chain events, including committee rotations and vault operations. This involves querying Cardano blocks, filtering transactions relevant to the system, and recording UTXO changes on-chain.
 
-### Chain-agnostic witnessing capabilities required by DEX operations
+## Chainflip DEX Witnessing Architecture Overview
 
-See the Tier 1 and Tier 2 sections below for the detailed capability lists and per-chain support matrices.
+The Chainflip witnessing framework provides a proven foundation for monitoring external blockchains that we can adapt for Cardano integration. Key architectural principles from the upstream implementation include:
 
-### Tier 1: Required for correctness/MVP
+### Core Witnessing Pattern
+- **External Chain Monitoring**: Validators maintain persistent connections to external blockchain nodes (full nodes, light clients, or reliable RPC services)
+- **Event Detection**: Continuous scanning for transactions to monitored addresses/contracts, with filtering for deposit events, vault operations, and relevant state changes
+- **Safety Margin Application**: Wait for blockchain-specific confirmation depths before considering transactions final
+- **Consensus Witnessing**: Require supermajority validator agreement (typically 2/3+) before finalizing witnessed events on the State Chain
+- **Slashing Protection**: Validators are held accountable for false or inaccurate witness submissions
+
+### Blockchain-Specific Safety Margins (from upstream)
+- **Bitcoin**: 3 blocks (~30 minutes) - accounts for probabilistic finality and potential reorgs
+- **Ethereum**: 6 blocks (~90 seconds) - balances finality with transaction throughput requirements  
+- **Polkadot**: Based on GRANDPA finality - deterministic finality with shorter wait times
+
+### Cardano-Specific Considerations for Safety Margin
+Cardano's Ouroboros consensus provides probabilistic finality similar to Bitcoin, but with different characteristics:
+- **Block Production**: ~20-second slots with variable block density
+- **Epoch Structure**: ~5-day epochs providing additional security guarantees  
+- **Finality Model**: Probabilistic finality that strengthens over time, similar to Bitcoin but with different mathematical properties
+- **Recommended Safety Margin**: Research suggests 3-6 blocks for high-value transactions, potentially adjustable based on transaction size and risk tolerance
+
+### Chainflip Deposit Witnessing Flow (Pattern to Follow)
+
+The upstream Chainflip implementation follows a standardized deposit witnessing flow that should be adapted for Cardano:
+
+1. **Deposit Address Monitoring**: Validators continuously monitor pre-generated deposit addresses for incoming funds
+2. **Transaction Detection**: Upon detecting inbound transfers to monitored addresses, validators parse transaction details (amount, asset type, sender information)
+3. **Confirmation Tracking**: Validators track block confirmations until the safety margin is reached
+4. **Witness Extrinsic Submission**: Once confirmed, validators submit witness extrinsics containing deposit details to the State Chain
+5. **Consensus and Finalization**: The State Chain requires supermajority agreement before finalizing the deposit and enabling swap processing
+
+### UTXO Chain Witnessing Patterns (Bitcoin/Cardano Similarity)
+
+Cardano shares UTXO model characteristics with Bitcoin, allowing reuse of proven witnessing patterns:
+
+- **UTXO Scanning**: Monitor specific output addresses rather than account balances
+- **Multi-Asset Bundle Handling**: Cardano UTXOs can contain multiple native tokens in a single output (similar to Bitcoin's colored coins but native)
+- **Change Output Management**: Track vault change outputs to maintain accurate UTXO state for subsequent transactions
+- **Consolidation Heuristics**: Implement UTXO consolidation strategies to maintain vault efficiency under min-ADA constraints
+
+### Threshold Signature Ceremonies Integration
+
+Cardano witnessing must integrate with the existing TSS framework for vault operations:
+
+- **Key Generation**: Participate in distributed key generation ceremonies for Cardano EdDSA keys
+- **Signing Coordination**: Coordinate threshold signature creation for outbound Cardano transactions
+- **Broadcast Witnessing**: Confirm successful broadcasting of signed transactions and track finalization
+
+### Required Witnessing Capabilities
 
 Legend: ✓ supported, ✗ not supported, ~ partial
 
@@ -36,24 +82,24 @@ Legend: ✓ supported, ✗ not supported, ~ partial
 | Per-chain CPU/memory quotas and isolation | Enforce per-chain resource limits beyond batching/backpressure. | ~ [P8] | ~ [P8] | ~ [P8] | ~ [P8] | ✗ |
 | Standardized auditable replay tooling | Unified tooling/process to replay and audit events deterministically. | ~ [P12] | ~ [P12] | ~ [P12] | ~ [P12] | ✗ |
 
-Notes on partial support (Tier 1)
+#### Notes on partial support
 
 | ID | Summary | Partiality dimension | Rationale |
 | --- | --- | --- | --- |
-| P1 | Cardano: idempotency infra (processed ranges, DB) exists engine-wide, but Cardano witnessing pipeline not yet wired to use it. | By blockchain (Cardano); pipeline wiring status | Core correctness on other chains is proven; Cardano remains safe by not emitting until wired. Once connected, watermarks prevent duplicates. |
-| P2 | Cardano: confirmation depth/lag-safety patterns are available, but Chain Sync-driven finality gating is not implemented. | By blockchain (Cardano); finality gating mechanism | Prevents premature commits; withholding updates until depth is honored preserves correctness at the cost of latency. |
-| P3 | Polkadot: egress confirmation semantics differ (Substrate extrinsics/state), partial coverage in current witness modules; deeper reconciliation may be needed per call type. | By blockchain (Polkadot); by call type (egress paths) | Affects completeness of confirmations on DOT paths only; Cardano/BTC/ETH unaffected; correctness maintained by not marking done early. |
-| P4 | Cardano: persistent key/value and bitmap utilities exist; no Cardano-specific integration yet. | By blockchain (Cardano); persistence integration | Without this wiring Cardano witness won’t progress; other chains unaffected; once wired, exact-once is preserved by watermarks. |
-| P5 | Cardano: retry/backoff implemented for RPC client; health gating and multi-endpoint failover not yet. | By blockchain (Cardano); sub-feature (health gating, endpoint failover) | Impacts availability not correctness; retries may churn but state is guarded by finality/idempotency. |
-| P6 | Cardano: logging/metrics plumbing available at engine level; no Cardano-specific metrics emitted by a witness pipeline yet. | By blockchain (Cardano); chain-specific metrics | Observability gap; does not affect state transitions or DEX correctness. |
-| P7 | All chains: backfill usually achieved via persisted watermarks and re-scan; explicit gap-detection and automated repair is partial. | Cross-chain; automation vs manual orchestration | Deposits/egresses during downtime are recoverable via manual re-scan; possible delay but no loss or duplication. |
-| P8 | All chains: health checks exist; gating (pause/resume) is available in parts of the stack but not uniformly enforced across all witness paths. | Cross-chain; enforcement coverage across witness paths | Ops may need to pause manually; retries may waste cycles, but finality/idempotency prevent bad state. |
-| P9 | All chains: exactly-once is achieved practically via dedup/watermarks; end-to-end idempotency across state-chain submissions varies by call path. | By call path; submission endpoints | Harmless re-submits may occur; pallets dedupe; correctness preserved. |
-| P10 | All chains: safe-mode toggles exist in runtime; witness components integrate partially and not for every feature domain. | Cross-chain; coverage across witness features and chains | Incident isolation may be less granular; core guards (finality/validation) still protect state. |
-| P11 | All chains: tracked-data types are stable within versions; explicit versioned schema evolution/migrations are partial. | Cross-chain; release/upgrade process | Upgrade cadence may require coordination; live flows unaffected when versions are stable. |
-| P12 | All chains: deterministic replay possible with retained chain data and configs; standardized replay tooling is partial. | Cross-chain; tooling maturity | Affects audit/forensics speed, not live operation. |
-| P13 | All chains: basic isolation via chunking/backpressure exists; no explicit fairness scheduler across chains/work types. | Cross-chain; scheduler design (no global fairness) | Latency/backlog can skew under load; per-chain concurrency prevents starvation; no correctness risk. |
-| P14 | All chains: metrics exist to infer latency; formal SLO targets and standardized staleness alerting are not universally implemented. | Cross-chain; observability/SLO policy | Issues may be detected later without SLOs; state remains correct once processed. |
+| P1 | idempotency infra (processed ranges, DB) exists engine-wide, but Cardano witnessing pipeline not yet wired to use it. | pipeline wiring status | Core correctness on other chains is proven; Cardano remains safe by not emitting until wired. Once connected, watermarks prevent duplicates. |
+| P2 | confirmation depth/lag-safety patterns are available, but Chain Sync-driven finality gating is not implemented. | finality gating mechanism | Prevents premature commits; withholding updates until depth is honored preserves correctness at the cost of latency. |
+| P3 | egress confirmation semantics differ (Substrate extrinsics/state), partial coverage in current witness modules; deeper reconciliation may be needed per call type. | by call type (egress paths) | Affects completeness of confirmations on DOT paths only; Cardano/BTC/ETH unaffected; correctness maintained by not marking done early. |
+| P4 | persistent key/value and bitmap utilities exist; no Cardano-specific integration yet. | persistence integration | Without this wiring Cardano witness won’t progress; other chains unaffected; once wired, exact-once is preserved by watermarks. |
+| P5 | retry/backoff implemented for RPC client; health gating and multi-endpoint failover not yet. | sub-feature (health gating, endpoint failover) | Impacts availability not correctness; retries may churn but state is guarded by finality/idempotency. |
+| P6 | logging/metrics plumbing available at engine level; no Cardano-specific metrics emitted by a witness pipeline yet. | chain-specific metrics | Observability gap; does not affect state transitions or DEX correctness. |
+| P7 | backfill usually achieved via persisted watermarks and re-scan; explicit gap-detection and automated repair is partial. | automation vs manual orchestration | Deposits/egresses during downtime are recoverable via manual re-scan; possible delay but no loss or duplication. |
+| P8 | health checks exist; gating (pause/resume) is available in parts of the stack but not uniformly enforced across all witness paths. | enforcement coverage across witness paths | Ops may need to pause manually; retries may waste cycles, but finality/idempotency prevent bad state. |
+| P9 | exactly-once is achieved practically via dedup/watermarks; end-to-end idempotency across state-chain submissions varies by call path. | By call path; submission endpoints | Harmless re-submits may occur; pallets dedupe; correctness preserved. |
+| P10 | safe-mode toggles exist in runtime; witness components integrate partially and not for every feature domain. | coverage across witness features and chains | Incident isolation may be less granular; core guards (finality/validation) still protect state. |
+| P11 | tracked-data types are stable within versions; explicit versioned schema evolution/migrations are partial. | release/upgrade process | Upgrade cadence may require coordination; live flows unaffected when versions are stable. |
+| P12 | deterministic replay possible with retained chain data and configs; standardized replay tooling is partial. | tooling maturity | Affects audit/forensics speed, not live operation. |
+| P13 | basic isolation via chunking/backpressure exists; no explicit fairness scheduler across chains/work types. | scheduler design (no global fairness) | Latency/backlog can skew under load; per-chain concurrency prevents starvation; no correctness risk. |
+| P14 | metrics exist to infer latency; formal SLO targets and standardized staleness alerting are not universally implemented. | observability/SLO policy | Issues may be detected later without SLOs; state remains correct once processed. |
 
 ### Purpose and required characteristics for DEX functionality (informed by BTC/ETH)
 
@@ -72,6 +118,28 @@ Notes on partial support (Tier 1)
   Track outbound transactions until they reach configured finality and then mark withdrawals/settlements complete while accounting for change back to the vault.
   - Observe broadcast transactions and confirm finalization to mark egress items complete (BTC: `witness/btc/vault_swaps.rs`; EVM: receipts via `EvmRetryRpcApi`).
   - Cardano: confirm by tx hash and output matching after required confirmation depth; handle change outputs to vault.
+
+### Chainflip DEX Integration Points for Cardano Witnessing
+
+Based on the upstream Chainflip implementation patterns, Cardano witnessing must integrate with several core DEX components:
+
+#### Swap Intent Registration and Deposit Tracking
+- **User-Initiated Swaps**: Users deposit funds to generated Cardano addresses with encoded swap parameters (similar to BTC OP_RETURN data but using Cardano transaction metadata)
+- **Channel-Based Deposits**: Support both broker-mediated deposits (with commission tracking) and direct user deposits
+- **Asset Type Detection**: Distinguish between ADA deposits and native token deposits, with proper policy ID validation
+- **Amount Validation**: Enforce minimum deposit thresholds and account for min-ADA requirements on outputs
+
+#### Vault UTXO Management Integration  
+- **Vault State Tracking**: Maintain real-time view of vault UTXO composition for transaction construction
+- **Consolidation Signaling**: Detect UTXO fragmentation patterns and signal when consolidation transactions are needed
+- **Min-ADA Compliance**: Ensure all vault outputs meet Cardano's min-ADA requirements, factoring in multi-asset bundles
+- **Transaction Size Optimization**: Balance UTXO consolidation with transaction size limits to maintain efficient vault operations
+
+#### Cross-Chain Settlement Coordination
+- **Egress Transaction Broadcasting**: Coordinate with TSS to broadcast outbound Cardano transactions for cross-chain settlements
+- **Settlement Confirmation**: Witness successful egress transactions and confirm settlement completion
+- **Failed Transaction Handling**: Detect and handle failed settlements, triggering retry mechanisms or refund processes
+- **Change Output Attribution**: Properly attribute change outputs back to vault control for future operations
 
 - #### Vault UTXO lifecycle management signals
   Monitor vault UTXO shape and costs to trigger consolidation/rotation suggestions so the vault remains efficient and transactions are constructible under size/fee limits.
@@ -149,6 +217,80 @@ Notes on partial support (Tier 1)
   - Provide a slot-based replay token and current epoch timing to builders; ensure consistency around epoch transitions.
 
 
+## Technical Implementation Architecture (Based on Upstream Patterns)
+
+### Witness Module Structure (Following Established Pattern)
+
+Based on the upstream Chainflip architecture, the Cardano witness implementation should follow the established module structure:
+
+```
+src/witness/ada/
+├── mod.rs              // Main entry point following eth.rs/btc.rs pattern
+├── source.rs           // AdaSource implementing ChainSource/ExternalChainSource  
+├── chain_tracking.rs   // GetTrackedData implementation for Cardano
+├── deposits.rs         // UTXO deposit detection and witness generation
+└── vault_swaps.rs      // Vault operation witnessing (if applicable)
+```
+
+### Chain Source Implementation Requirements
+
+Following the pattern established by `BtcSource` and `EvmSource`, the Cardano implementation requires:
+
+1. **AdaSource Structure**: Implement `ChainSource` and `ExternalChainSource` traits
+2. **Chain Client Integration**: Wrap `AdaRetryRpcClient` to provide `ChainClient` interface  
+3. **Header Streaming**: Adapt Ogmios Chain Sync to produce header streams compatible with the witnessing framework
+4. **Block Data Retrieval**: Transform Ogmios block data into format consumable by deposit detection logic
+
+### Safety Margin Configuration Pattern
+
+Following the established configuration pattern from Bitcoin/Ethereum:
+
+```rust
+// Following pattern from btc.rs and eth.rs
+let ada_safety_margin = state_chain_client
+    .storage_value::<pallet_cf_ingress_egress::WitnessSafetyMargin<
+        state_chain_runtime::Runtime, 
+        CardanoInstance,
+    >>(state_chain_stream.cache().hash)
+    .await?
+    .unwrap_or(ADA_SAFETY_MARGIN);  // Default constant from cf-primitives
+
+tracing::info!("Safety margin for Cardano is set to {ada_safety_margin} blocks.");
+```
+
+### Chunked Chain Source Pipeline Architecture  
+
+The Cardano implementation should follow the established pipeline pattern:
+
+1. **Base Chain Source**: `AdaSource` with Ogmios client integration
+2. **Monitoring Components**: Apply `strictly_monotonic()` and `shared()` wrappers
+3. **Safety Application**: Apply `lag_safety(ada_safety_margin)` for finality protection
+4. **Vault Chunking**: Use `chunk_by_vault()` to organize processing by epoch/vault periods
+5. **Address Monitoring**: Apply `deposit_addresses()` and `private_deposit_channels()` decorators
+6. **Processing Integration**: Connect to witness call submission pipeline
+
+### Witness Call Submission Integration
+
+Following the established pattern from other chains:
+
+```rust
+// Pattern from witness/start.rs
+let witness_call = {
+    let state_chain_client = state_chain_client.clone();
+    move |call, epoch_index| {
+        let state_chain_client = state_chain_client.clone();
+        async move {
+            let _ = state_chain_client
+                .finalize_signed_extrinsic(pallet_cf_witnesser::Call::witness_at_epoch {
+                    call: Box::new(call),
+                    epoch_index,
+                })
+                .await;
+        }
+    }
+};
+```
+
 ## Compatibility assessment: reuse of existing witnessing features
 
 The following features from existing chains can be reused for Cardano (EUTXO, probabilistic finality, chain-sync via Ogmios). Where provenance lists both, the pattern is shared; otherwise it indicates the closest source to follow.
@@ -205,4 +347,66 @@ Non-applicable (not required for Cardano witnessing):
 Recommendation:
 - For Phase 2.4 witnessing (ingest, UTXO/deposit detection, tracked-data): prefer Pallas + Ogmios (keep Ogmios for Chain Sync, use Pallas for types/CBOR/address utilities as needed).
 - For later transaction construction/broadcast phases: consider introducing CSL (or CML) specifically for tx building and metadata serialization if required; keep witnessing path on Pallas.
+
+## Production Deployment Considerations
+
+### Validator Network Integration Requirements
+
+**Consensus and Threshold Requirements**
+- Maintain existing supermajority consensus threshold (2/3+ validators) for Cardano witness submission
+- Ensure proper integration with existing slashing mechanisms for false witness submission
+- Implement validator accountability measures for Cardano-specific witness failures
+- Support witness data combination and outlier rejection for minority attack resistance
+
+**Network Environment Adaptation**
+- Support mainnet, testnet, and development environment configurations for Cardano networks
+- Implement proper network magic validation to prevent cross-network witness submission
+- Configure appropriate safety margins per network environment (mainnet vs testnet)
+- Support era-aware operations across Cardano hard fork boundaries
+
+### Operational Requirements
+
+**Health Monitoring and Metrics**
+- Implement Cardano-specific witness health check endpoints following existing patterns
+- Add comprehensive metrics for block processing latency, UTXO detection rates, and safety margin compliance
+- Monitor Ogmios connection health and Chain Sync status with appropriate alerting
+- Track witness submission success rates and consensus achievement timing
+
+**Error Handling and Recovery**
+- Implement robust error handling for Cardano network connectivity issues
+- Support graceful degradation when Chain Sync becomes unavailable (fallback to basic mode)
+- Handle era transitions and protocol parameter updates without service interruption
+- Implement proper circuit breaker patterns for Chain Sync timeout scenarios
+
+**Resource Management**
+- Apply memory limits for Chain Sync block storage to prevent resource exhaustion
+- Implement backpressure mechanisms for high-throughput Cardano block processing
+- Configure appropriate batch sizes for UTXO scanning to balance latency with resource usage
+- Support cleanup of stale witness state during epoch transitions
+
+### Security and Compliance
+
+**Validator Security Measures**
+- Implement proper key isolation for Cardano witnessing operations
+- Support secure storage of Cardano witness progress watermarks in persistent database
+- Ensure proper separation between witness operations and TSS key material
+- Follow established patterns for validator reputation and slashing integration
+
+**Protocol Compliance**
+- Ensure compatibility with upstream Chainflip protocol specifications and interfaces
+- Maintain consistency with existing witness call submission and consensus patterns
+- Support proper integration with existing DEX swap flows and settlement mechanisms
+- Implement appropriate audit trails for witnessed Cardano transactions
+
+**Data Integrity**
+- Implement deterministic UTXO parsing to ensure consistent witness generation across validators
+- Apply proper validation for Cardano address formats and native token policy IDs  
+- Ensure idempotent witness generation across validator restarts and network connectivity issues
+- Support proper deduplication of witness events during reorg handling scenarios
+
+This implementation plan provides a comprehensive roadmap for extending the proven Chainflip witnessing framework to support Cardano blockchain integration, following established architectural patterns while addressing Cardano's unique EUTXO model and consensus characteristics.
+
+## Compatibility assessment: reuse of existing witnessing features
+
+The following features from existing chains can be reused for Cardano (EUTXO, probabilistic finality, chain-sync via Ogmios). Where provenance lists both, the pattern is shared; otherwise it indicates the closest source to follow.
 

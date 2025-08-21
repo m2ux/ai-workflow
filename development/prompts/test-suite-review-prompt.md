@@ -65,6 +65,13 @@ Evaluate alignment with business requirements and production usage:
 - [ ] Performance characteristics and resource constraints
 - [ ] Security considerations and input validation
 
+**Test Scope Appropriateness:**
+- [ ] Integration tests validate end-to-end workflows, not external API responses
+- [ ] Unit tests cover client-side logic: validation, error handling, data transformation
+- [ ] No integration tests that primarily validate third-party library behavior
+- [ ] Clear separation between testing our code vs testing external dependencies
+- [ ] Mock/stub usage appropriate for isolating system under test
+
 **Production Alignment:**
 - [ ] Tests reflect actual production usage patterns
 - [ ] Requirements validation that matters to end users
@@ -116,6 +123,13 @@ Evaluate test design quality and defect detection capabilities:
 - [ ] Specification and contract enforcement
 - [ ] Fast failure with clear diagnostic information
 
+**Test Code Quality:**
+- [ ] Comment density reasonable (< 15% of lines), focused on complex logic
+- [ ] No excessive documentation that merely repeats function/variable names
+- [ ] Test comments explain "why" not "what" (business context, edge cases)
+- [ ] API documentation proportional to complexity and user needs
+- [ ] Comments add genuine value for maintenance and understanding
+
 ### 4. Test Salience & Risk Focus
 
 Assess risk-based testing and resource prioritization:
@@ -157,11 +171,25 @@ Scrutinize test structure and infrastructure:
 - [ ] Clear separation between test layers and types
 - [ ] Well-abstracted shared test utilities and helpers
 
+**Test Pyramid Balance:**
+- [ ] Unit tests outnumber integration tests (typical ratio 3:1 to 5:1)
+- [ ] Integration tests focus on system boundaries, not external API validation
+- [ ] No "test pyramid inversion" (excessive integration tests vs unit tests)
+- [ ] Client logic is tested at unit level, not integration level
+- [ ] External system behavior is mocked/stubbed in unit tests
+
 **Test Infrastructure:**
 - [ ] Robust testing framework and tool usage
 - [ ] Consistent mock/stub strategy and implementation
 - [ ] Systematic test data management approach
 - [ ] Proper test environment setup and teardown
+
+**Test Execution Setup:**
+- [ ] Feature-gated tests documented with correct execution commands
+- [ ] Integration test requirements clearly specified (dependencies, environment)
+- [ ] Test execution failures debugged with proper methodology
+- [ ] No confusion between `--ignored` flag and feature flag usage
+- [ ] Test documentation includes environment setup and execution examples
 
 **Documentation & Naming:**
 - [ ] Descriptive test names explaining scenarios
@@ -206,12 +234,29 @@ List specific examples of excellent test implementation:
 - Quality test documentation examples
 
 #### ⚠️ Issues Requiring Attention
+
+**Common Anti-Patterns to Flag:**
+
+**Test Pyramid Issues:**
+- **Integration Test Overuse:** > 40% of tests are integration tests
+- **External API Testing:** Integration tests validating third-party API responses  
+- **Client Logic in Integration:** Business logic tested only through integration tests
+
+**Comment Quality Issues:**
+- **Excessive Documentation:** > 20% comment density in test files
+- **Redundant Comments:** Comments that restate function signatures or obvious code
+- **Missing Value Comments:** Complex test logic without explanatory comments
+
+**Test Execution Issues:**
+- **Feature Gate Confusion:** Wrong test execution methodology documented
+- **Missing Dependencies:** Integration tests fail due to undocumented requirements
+
 For each issue, provide:
 
 **Issue #N: [Brief Title]**
 - **Severity:** Critical/High/Medium/Low
 - **Location:** `file_path:line_numbers`
-- **Category:** Relevance/Coverage/Effectiveness/Salience/Architecture
+- **Category:** Relevance/Coverage/Effectiveness/Salience/Architecture/Pyramid Balance
 - **Description:** Clear technical explanation
 - **Impact:** Specific consequences (test reliability, maintenance cost, deployment confidence)
 - **Recommendation:** Concrete, actionable solution
@@ -230,7 +275,29 @@ For each issue, provide:
 - Test execution time analysis
 - Test maintenance indicators
 
-#### ⚖️ Coverage Balance Analysis
+**Test Balance Metrics:**
+- **Unit:Integration Ratio:** X:Y (flag if < 2:1 in favor of unit tests)
+- **Comment Density:** X% (flag if > 15% without justification)
+- **External Dependency Tests:** Count of tests primarily validating external APIs
+- **Test Execution Complexity:** Requirements and setup complexity assessment
+
+#### ⚖️ Test Pyramid and Coverage Analysis
+
+**Test Pyramid Health Check:**
+- **Unit Test Ratio:** X% (should be 60-80% of total tests)
+- **Integration Test Ratio:** Y% (should be 20-30% of total tests)
+- **Pyramid Inversion Risk:** HIGH/MEDIUM/LOW based on ratios
+
+**Integration Test Scope Assessment:**
+- **Appropriate Integration Tests:** Tests validating system boundaries and workflows
+- **Misplaced Integration Tests:** Tests that should be unit tests (client logic, validation)
+- **External API Testing:** Count of tests primarily validating external system behavior
+
+**Test Purpose Clarity:**
+- Tests clearly focused on our system's behavior vs external dependencies
+- Proper use of mocks/stubs to isolate system under test
+- Integration tests validate end-to-end scenarios, not API contracts
+
 **Cross-Crate Test Distribution:**
 - **Over-tested Crates:** List crates with excessive test volume relative to complexity
 - **Under-tested Crates:** List crates with insufficient coverage for their criticality
@@ -252,6 +319,7 @@ Provide detailed assessment:
 - **Test Effectiveness:** ✓/✗ [Score%] - Key findings summary
 - **Salience & Risk Focus:** ✓/✗ [Score%] - Key findings summary
 - **Architecture & Organization:** ✓/✗ [Score%] - Key findings summary
+- **Test Pyramid Balance:** ✓/✗ [Score%] - Unit:integration ratio and scope assessment
 - **Coverage Balance & Resource Allocation:** ✓/✗ [Score%] - Cross-crate asymmetry findings and low-value test recommendations
 
 ### Recommendations Summary

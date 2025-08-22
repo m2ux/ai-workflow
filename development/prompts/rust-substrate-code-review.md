@@ -25,6 +25,12 @@ Reviewers should adopt a layered approach:
 - Review performance considerations and security implications
 - Defer style and formatting issues primarily to tooling (`rustfmt`, `clippy`)
 
+### Implementation Standards:
+When implementing review recommendations, maintain professional code quality:
+- Write comments that explain **what the code does** and **why it exists**
+- Never add comments that reference the review process, changes made, or historical context
+- Focus on making the code self-documenting and maintainable for future developers
+
 ---
 
 ## Pre-Review Setup
@@ -168,6 +174,7 @@ Conduct a comprehensive code review of the Rust module at the specified path
 - [ ] Complex logic sections are well documented
 - [ ] TODO/FIXME comments contain context and clear instructions
 - [ ] Comment density is balanced—avoid under- or over-commenting
+- [ ] Comments describe current functionality, not historical changes or review processes
 
 **Documentation Standards:**
 - [ ] Follows rustdoc conventions
@@ -337,8 +344,9 @@ Ask the user:
 
 1. **Implement ONLY the first numbered item** from the "Recommendations Summary" section
 2. **Apply all necessary changes** to address that specific recommendation completely
-3. **Test the changes** (if applicable) to ensure they work correctly
-4. **Stop and ask the user** before proceeding:
+3. **Ensure all comments explain current functionality**, not review changes or implementation history
+4. **Test the changes** (if applicable) to ensure they work correctly
+5. **Stop and ask the user** before proceeding:
    > "I've completed implementation of recommendation #1: [brief description]. Would you like me to proceed with the next recommendation (#2)?"
 
 ### Step 3: Continue Until Complete
@@ -359,8 +367,10 @@ After implementing all numbered recommendations, provide:
 - ✅ **Complete one full recommendation** before stopping
 - ✅ **Ask permission** between each recommendation
 - ✅ **Make all necessary file changes** for each recommendation
+- ✅ **Write comments that explain what code does**, not what changes were made during review
 - ❌ **Never implement multiple recommendations** in a single iteration
 - ❌ **Never proceed** without explicit user consent for each item
+- ❌ **Never add comments** that reference the review, changes made, or implementation process
 
 ---
 
@@ -379,3 +389,9 @@ After implementing all numbered recommendations, provide:
 - `toolkit/pallets/session-validator-management`
 - `toolkit/utils/ogmios-client`
 - `node/runtime`
+
+## Reference Materials
+- [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
+- [Substrate Documentation](https://docs.substrate.io/)
+- [Polkadot SDK Documentation](https://paritytech.github.io/polkadot-sdk/)
+- [Rust Performance Book](https://nnethercote.github.io/perf-book/)

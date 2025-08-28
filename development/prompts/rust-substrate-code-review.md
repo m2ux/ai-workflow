@@ -1,4 +1,5 @@
-# Rust/Substrate Code Review Template
+# Rust/Substrate Code Review Prompt
+
 **Target Module:** `{TARGET_PATH}`
 
 ## Reviewer Role & Instructions

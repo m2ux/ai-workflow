@@ -1,4 +1,5 @@
-# Test Suite Review and Evaluation Template
+# Test Suite Review and Evaluation Prompt
+
 **Target Module:** `{TARGET_PATH}`
 
 ## Reviewer Role & Instructions

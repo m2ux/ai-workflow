@@ -123,8 +123,9 @@ Use this format for each response section:
 - Never use markdown code blocks (` ```markdown `) for responses
 - Always combine comment text and link in single line: `**Comment:** ["text"](link)`
 - Co-locate questions and responses in the same section for readability
+- **MANDATORY**: Include "Follow-up Actions:" sub-section in every response
+- Embed specific, actionable follow-up items within each response section
 - Include comprehensive citations **[ref]** for all technical claims
-- Extract follow-up actions into categorized single-line summaries
 - Reference target document being reviewed with clear restructuring strategy
 - Perform gap analysis - initial analysis typically misses 40-60% of comments
 - Ensure responses are ready for direct copying to PR threads
@@ -148,10 +149,9 @@ The review document must include:
 1. **Document Header** with metadata (version, date, PR link, reviewer, analysis method)
 2. **Executive Summary** with key findings and reviewer concerns  
 3. **Analysis Methodology** describing steps followed and commands used
-4. **Review Comments and Responses** (co-located Q&A format - see 6.4)
-5. **Follow-up Actions** (extracted action items with specific phasing - see 6.5)
-6. **Conclusion** summarizing key outcomes and recommendations
-7. **Sources and References** (comprehensive citations - see 6.6)
+4. **Review Comments and Responses** (co-located Q&A format with embedded follow-up actions - see 6.4)
+5. **Conclusion** summarizing key outcomes and recommendations
+6. **Sources and References** (comprehensive citations - see 6.5)
 
 #### 6.3: Document Target Reference
 **CRITICAL**: When reviewing planning documents, include clear reference to the target document:
@@ -160,8 +160,8 @@ The review document must include:
 **Restructuring Strategy:** [Brief explanation of how the document should be improved]
 ```
 
-#### 6.4: Co-located Question and Response Format
-Each comment section must follow this exact format:
+#### 6.4: Co-located Question, Response, and Follow-up Actions Format
+Each comment section must follow this exact format with embedded follow-up actions:
 
 ```markdown
 ### [NUMBER]. [Brief Description] [PRIORITY]
@@ -181,32 +181,24 @@ Each comment section must follow this exact format:
 > "[Suggested documentation text]"
 > 
 > [Concluding statement or summary]
+
+**Follow-up Actions:**
+- [Specific action item 1 with implementation details]
+- [Phase-based action with complexity reduction: Phase 1/2+ - Feature: Action (~X% reduction)]  
+- [Technical validation requirement with citations **[ref]**]
+- [Integration or verification task]
 ```
 
 **CRITICAL FORMAT RULES:**
 - Use `>` blockquotes for ALL response content (NOT code blocks)
 - Always combine comment text and link in single line format
 - Include citations **[ref]** for all technical claims
-- Co-locate each question with its response in the same section
+- Co-locate each question with its response and follow-up actions in the same section
+- **MANDATORY**: Every response section must include a "Follow-up Actions:" sub-section
+- Follow-up actions should be specific, actionable items that can be tracked and assigned
+- Include phase-based actions (Phase 1, Phase 2+) with complexity reduction percentages when applicable
 
-#### 6.5: Follow-up Actions Format
-Extract specific action items from all responses into categorized single-line summaries:
-
-```markdown
-## Follow-up Actions
-
-### 1. Scope Reduction and Feature Phasing
-- Phase 1 - [Feature]: [Specific action] (~X% complexity reduction)
-- Phase 2+ - [Feature]: [Deferred action with reasoning]
-
-### 2. Technical Implementation Decisions  
-- [Decision Area]: [Specific technical choice with citation **[ref]**]
-
-### 3. Architecture and Integration Review
-- [Pattern Area]: [Validation requirement with citations **[ref1,ref2]**]
-```
-
-#### 6.6: Sources and References Section
+#### 6.5: Sources and References Section
 **MANDATORY**: Include comprehensive sources section with:
 
 **Source Code References Format:**
@@ -228,21 +220,23 @@ Extract specific action items from all responses into categorized single-line su
 - Multiple citations: **[1,2,3]**
 - Cite ALL technical claims, specifications, and implementation details
 
-#### 6.7: Quality Requirements
+#### 6.6: Quality Requirements
 - **Complete Coverage**: All reviewer comments addressed, none missed (perform gap analysis)
 - **Professional Tone**: Technical communication following repository standards
 - **Ready-to-Use Responses**: All responses in blockquote format for direct copying
+- **Embedded Follow-up Actions**: Every response section must include specific, actionable follow-up items
 - **Comprehensive Citations**: All technical details properly sourced and referenced
 - **Verified Links**: All source code references tested and working
 - **Permanent Reference**: Document serves as record for future similar PRs
 
-#### 6.8: Verification Steps
+#### 6.7: Verification Steps
 - [ ] All comment IDs from verification step included (gap analysis performed)
 - [ ] Response count matches question-type comment count  
 - [ ] Document includes proper GitHub discussion links
+- [ ] Every response section includes "Follow-up Actions:" sub-section
 - [ ] All source code references verified to exist
 - [ ] All citations properly formatted and numbered
-- [ ] Follow-up actions extracted from responses in single-line format
+- [ ] All follow-up actions are specific, actionable, and trackable
 - [ ] All responses follow professional communication standards
 - [ ] Document includes complete analysis methodology for reproducibility
 
@@ -305,7 +299,7 @@ Extract specific action items from all responses into categorized single-line su
 - [ ] **Combined Links**: All comments use format: `**Comment:** ["text"](link)`
 - [ ] **Co-located Q&A**: Questions and responses in same section for readability
 - [ ] **Target Document Referenced**: Clear link to document being reviewed with restructuring strategy
-- [ ] **Follow-up Actions**: Extracted specific phasing and feature changes into single-line summaries
+- [ ] **Follow-up Actions**: Embedded specific phasing and feature changes as actionable items within each response
 - [ ] **Comprehensive Citations**: All technical claims sourced with **[ref]** notation
 - [ ] **Verified Source Links**: All source code references use relative paths and verified to exist
 - [ ] **Sources Section**: Complete with technical docs, APIs, libraries, architecture refs, and implementation patterns
@@ -319,7 +313,7 @@ Extract specific action items from all responses into categorized single-line su
 - **Source Code Links**: Use relative paths with line numbers: `../../../../file.rs#L42`
 - **Gap Analysis**: Expect initial analysis to miss 40-60% of comments - always perform gap detection
 - **Coverage Target**: Aim for 20+ response sections in comprehensive technical PR reviews
-- **Follow-up Format**: Extract specific phasing and feature changes into single-line action items
+- **Follow-up Format**: Embed specific phasing and feature changes as actionable items within each response
 - **Target Documentation**: Always reference the document being reviewed with clear links
 - **Professional Tone**: Maintain consistency with existing project documentation style
 - **Reviewer Focus**: Consider the reviewer's perspective and expertise level

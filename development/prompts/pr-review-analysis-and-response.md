@@ -65,7 +65,6 @@ For each review comment retrieved:
 Generate a numbered list of applicable review comments that still need responses, including:
 - Brief description of the concern
 - Link to the original GitHub discussion
-- Priority level (if applicable)
 
 Format example:
 ```
@@ -99,7 +98,7 @@ For each applicable comment, provide responses that are:
 Use this format for each response section:
 
 ```markdown
-### [NUMBER]. [Brief Description] [PRIORITY]
+### [NUMBER]. [Brief Description]
 
 **Comment:** ["exact comment text"](https://github.com/[repo]/pull/[PR]#discussion_r[ID])
 
@@ -164,7 +163,7 @@ The review document must include:
 Each comment section must follow this exact format with embedded follow-up actions:
 
 ```markdown
-### [NUMBER]. [Brief Description] [PRIORITY]
+### [NUMBER]. [Brief Description]
 
 **Comment:** ["exact comment text"](https://github.com/[repo]/pull/[PR]#discussion_r[ID])
 

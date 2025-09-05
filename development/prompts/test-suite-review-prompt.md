@@ -127,9 +127,11 @@ Evaluate test design quality and defect detection capabilities:
 **Test Code Quality:**
 - [ ] Comment density reasonable (< 15% of lines), focused on complex logic
 - [ ] No excessive documentation that merely repeats function/variable names
+- [ ] Test comments follow established header template with purpose paragraphs
 - [ ] Test comments explain "why" not "what" (business context, edge cases)
 - [ ] API documentation proportional to complexity and user needs
 - [ ] Comments add genuine value for maintenance and understanding
+- [ ] Consistent test header format with business value explanations
 
 ### 4. Test Salience & Risk Focus
 
@@ -159,6 +161,22 @@ Assess risk-based testing and resource prioritization:
   * Trivial constructor/getter validation without business logic
   * Redundant tests that duplicate coverage without adding value
   * Tests focused purely on implementation details rather than behavior
+  * **Constructor + immediate field validation tests** (create object, assert all fields match input)
+  * **Type name equality checks** (`assert_eq!(type_name::<T>(), type_name::<T>())`)
+  * **Always-true assertion tests** (`assert!(true)` without conditional logic)
+  * **Empty collection validation tests** (create empty vec, assert len() == 0)
+  * **Default configuration tests** (call default(), check hardcoded expected values)
+  * **Pure mock interaction tests** (test mocks/test framework, not business logic)
+  * **Mock-only passthrough tests** (mock.set_response(X) → assert_eq!(mock.call(), X) without testing real client logic)
+  * **Misleading happy-path tests** (test names suggest error scenarios but only test success cases)
+- [ ] Identify high-value tests that should be prioritized:
+  * **Protocol compliance tests** (validate against external specifications like CIP-31, CIP-40)
+  * **Business rule enforcement** (network validation, security parameter compliance)
+  * **Error boundary testing** (timeout handling, connection failures, rollback scenarios)
+  * **State transition validation** (proper state machine behavior under various conditions)
+  * **Concurrent operation safety** (thread safety, resource contention, session independence)
+  * **Round-trip data integrity** (serialization/deserialization, encoding/decoding)
+  * **Cross-component integration** (multiple components working together correctly)
 - [ ] Assess asymmetric test distribution across crates/modules
 - [ ] Prioritize test effort based on business criticality and risk exposure
 - [ ] Ensure test maintenance cost is justified by testing value delivered
@@ -195,8 +213,21 @@ Scrutinize test structure and infrastructure:
 **Documentation & Naming:**
 - [ ] Descriptive test names explaining scenarios
 - [ ] Adequate documentation for complex test logic
-- [ ] Consistent Given-When-Then behavioral format
-- [ ] Clear test purpose and rationale documentation
+- [ ] Consistent test header template format with purpose paragraphs
+- [ ] Clear test purpose and rationale documentation following established template:
+```rust
+/// Short descriptive title of what the test validates.
+///
+/// Detailed paragraph explaining the purpose, importance, and business value
+/// of the test. What it validates, why it matters, and what it ensures for
+/// the system's reliability and functionality.
+///
+/// **Given:** Test setup and preconditions.
+/// **When:** Actions being tested.
+/// **Then:** Expected outcomes and validations.
+#[tokio::test]
+async fn test_function_name() {
+```
 
 ## Required AI Output Format
 
@@ -247,10 +278,17 @@ List specific examples of excellent test implementation:
 - **Excessive Documentation:** > 20% comment density in test files
 - **Redundant Comments:** Comments that restate function signatures or obvious code
 - **Missing Value Comments:** Complex test logic without explanatory comments
+- **Inconsistent Test Headers:** Test functions lacking standardized header format
+- **Missing Purpose Documentation:** Test headers without business value explanations
 
 **Test Execution Issues:**
 - **Feature Gate Confusion:** Wrong test execution methodology documented
 - **Missing Dependencies:** Integration tests fail due to undocumented requirements
+
+**Mock-Only Anti-Pattern Issues:**
+- **Mock Setup + Mock Verification:** Tests that use mocks to both setup conditions AND verify results, essentially testing "if mock returns X, does client receive X?" rather than testing real client logic
+- **Pure Mock Interaction:** Tests that only interact with mock objects without validating any real business logic or data processing
+- **Missing Real Client Testing:** Tests that should validate client processing logic but only test mock response passthrough
 
 For each issue, provide:
 
@@ -306,11 +344,161 @@ For each issue, provide:
 
 **Low-Value Test Identification:**
 - **Candidate for Removal:** Tests that provide minimal value (quantity and examples)
-  * Simple property validation tests: `test_name_example_1`, `test_name_example_2`
-  * Trivial constructor validation: `test_name_example_3`
-  * Redundant/duplicate coverage: `test_name_example_4`, `test_name_example_5`
+  * Simple property validation tests: `test_custom_configuration_propagation`, `test_ada_source_with_custom_settings`
+  * Trivial constructor validation: `test_deposit_processor_creation`, `test_address_manager_creation`
+  * Type name equality checks: `test_framework_integration` (contains `assert_eq!(type_name::<T>(), type_name::<T>())`)
+  * Always-true assertions: `test_chain_source_stream_and_client` (contains `assert!(true)`)
+  * Default config validation: `test_connection_config_defaults`, `test_default_config`
+  * Empty mock tests: Tests that only interact with mocks without business logic validation
+  * Mock-only passthrough tests: `test_get_transaction_success_with_utxo_extraction`, `test_get_tip_success_with_height_validation` (mock.set_response → mock.call → assert equality)
 - **Estimated Effort Savings:** Hours of maintenance effort that could be saved
 - **Risk Assessment:** Confidence level that removing these tests won't impact quality
+
+**Specific Anti-Patterns to Flag for Removal:**
+```rust
+// Pattern 1: Constructor + immediate property check
+#[test]
+fn test_config_creation() {
+    let config = MyConfig { field1: 42, field2: true };
+    assert_eq!(config.field1, 42); // <- Can only fail if language is broken
+    assert!(config.field2); // <- Can only fail if language is broken
+}
+
+// Pattern 2: Type name self-equality  
+#[test]
+fn test_type_compatibility() {
+    assert_eq!(std::any::type_name::<MyType>(), std::any::type_name::<MyType>());
+    // ^ Always true, cannot fail
+}
+
+// Pattern 3: Always-true assertions
+#[test] 
+fn test_placeholder() {
+    let _obj = SomeObject::new();
+    assert!(true); // <- Useless assertion
+}
+
+// Pattern 4: Default config hardcoded validation
+#[test]
+fn test_defaults() {
+    let config = Config::default();
+    assert_eq!(config.timeout, Duration::from_secs(30)); // <- Just checking hardcoded default
+    assert_eq!(config.retries, 5); // <- Just checking hardcoded default
+}
+
+// Pattern 5: Happy-path method call with mock that can't fail
+#[test]
+async fn test_connection_recovery_flow() {
+    let client = Arc::new(MockClient::new()); // <- Mock always succeeds
+    let manager = Manager::new(client);
+    let result = manager.connect().await;
+    assert!(result.is_ok()); // <- Can only fail if method is completely broken
+}
+
+// Pattern 6: Misleading test names that don't test what they claim
+#[test]
+async fn test_error_recovery() { // <- Claims to test error recovery
+    let client = MockClient::new(); // <- But only uses happy-path mock
+    let result = service.process().await;
+    assert!(result.is_ok()); // <- Never tests actual error scenarios
+}
+
+// Pattern 7: Initial state validation after constructor
+#[test]
+fn test_manager_creation() {
+    let manager = Manager::new();
+    assert_eq!(manager.count(), 0); // <- Of course it starts at 0
+    assert!(manager.is_empty()); // <- Of course it starts empty
+}
+
+// Pattern 8: Mock-only testing (mock setup + mock verification)
+#[test]
+async fn test_get_transaction_success() {
+    let mock_client = MockRpcClient::new();
+    let expected_tx = Transaction { hash: [0x42; 32], amount: 1000 };
+    mock_client.set_response("get_transaction", MockResponse::Transaction(expected_tx.clone())).await;
+    
+    let result = mock_client.get_transaction([0x42; 32]).await.expect("Should get transaction");
+    assert_eq!(result.hash, expected_tx.hash); // <- Just testing mock passthrough, no real client logic
+    assert_eq!(result.amount, expected_tx.amount); // <- Not testing any data processing or business rules
+}
+```
+
+**High-Value Test Patterns to Encourage:**
+```rust
+// ✅ Proper test header format with purpose documentation
+/// Client validates minimum UTXO requirements against Cardano protocol.
+///
+/// This test validates the ADA RPC client's ability to correctly enforce Cardano's minimum UTXO 
+/// requirements, which are critical for preventing blockchain bloat and ensuring transaction validity. 
+/// The test verifies that the client properly calculates minimum ADA amounts based on UTXO size and 
+/// protocol parameters, correctly identifying valid UTXOs that can be spent and flagging insufficient 
+/// UTXOs that would be rejected by the network.
+///
+/// **Given:** Mock client with UTXO data and protocol parameters.
+/// **When:** Validating UTXOs for transaction creation according to Cardano min-ADA rules.
+/// **Then:** Client should correctly identify UTXOs that meet or violate minimum ADA requirements.
+#[tokio::test]
+async fn test_utxo_minimum_ada_validation() {
+    // Test implementation with actual business logic validation
+}
+
+// ✅ Protocol compliance testing  
+#[test]
+fn test_min_ada_requirement_against_cardano_protocol() {
+    // Tests actual Cardano protocol calculation: minUTxO = (160 + size) * coinsPerUTxOByte
+    let calculated = processor.calculate_min_ada(utxo_size);
+    let expected = (160 + utxo_size) * 4310; // Real protocol parameter
+    assert_eq!(calculated, expected, "Should follow Cardano protocol");
+}
+
+// ✅ Business rule enforcement  
+#[test]
+fn test_network_mismatch_enforcement() {
+    let mainnet_manager = Manager::new(Network::Mainnet);
+    let testnet_address = create_testnet_address();
+    let result = mainnet_manager.add(testnet_address);
+    assert!(result.is_err(), "Should reject wrong network addresses"); // Real business rule
+}
+
+// ✅ Error boundary testing
+#[test]
+async fn test_connection_timeout_handling() {
+    let config = Config { timeout: Duration::from_millis(1) }; // Very short timeout
+    let result = manager.connect_with_config(config).await;
+    assert!(result.is_err(), "Short timeout should cause failure"); // Tests real error condition
+}
+
+// ✅ State transition validation
+#[test] 
+async fn test_complete_protocol_state_flow() {
+    // Tests real state machine transitions through multiple operations
+    assert_eq!(manager.state(), State::Disconnected);
+    manager.connect().await.expect("connect");
+    assert_eq!(manager.state(), State::Connected);
+    manager.sync().await.expect("sync");  
+    assert_eq!(manager.state(), State::Syncing);
+}
+
+// ✅ Real client testing with mocked external dependencies
+#[test]
+async fn test_transaction_conversion_logic() {
+    // Create mock external data (simulating third-party API response)
+    let chain_sync_transaction = ChainSyncTx {
+        hash: "4242...".to_string(),
+        body: TransactionBody { inputs: vec![...], outputs: vec![...] },
+    };
+    
+    // Test real client conversion logic (not mock behavior)
+    let converted_transaction = RpcClient::convert_chain_sync_transaction(chain_sync_transaction)
+        .expect("Should successfully convert");
+    
+    // Validate real business logic: data transformation, validation, format conversion
+    let expected_hash = hex::decode("4242...").unwrap();
+    assert_eq!(converted_transaction.hash, expected_hash); // Tests real conversion logic
+    assert!(converted_transaction.amount >= MIN_UTXO_VALUE); // Tests real business rule validation
+}
+```
 
 ### Compliance Checklist
 Provide detailed assessment:
@@ -327,6 +515,35 @@ Provide detailed assessment:
 1. **Immediate Actions:** (Critical/High priority items)
 2. **Near-term Improvements:** (Medium priority items)
 3. **Long-term Enhancements:** (Low priority items)
+
+---
+
+## Report Generation Requirements
+
+**CRITICAL: After completing the review analysis above, you MUST automatically generate a markdown report:**
+
+1. **Create markdown report file** in `docs/reviews/` directory with filename format: `{module-name}-review-{YYYY-MM-DD}.md`
+2. **Include complete review content** with all sections from Summary Assessment through Recommendations Summary
+3. **Use professional markdown formatting** with proper headers, tables, and lists
+4. **Add review metadata** including reviewer identity, timestamp, and module scope
+5. **Ensure report is comprehensive** and suitable for technical stakeholders
+
+**Report Generation Steps:**
+1. Determine appropriate filename based on target module and current date
+2. Write complete markdown report using the `write` tool
+3. Include all review findings, metrics, and recommendations
+4. Verify report is created successfully before proceeding to implementation phase
+
+**Example Report Structure:**
+```markdown
+# {Module Name} - Test Suite Review Report
+
+**Reviewer:** AI Agent (Senior Test Architect)
+**Review Date:** {Current Date}
+**Module:** {Target Path}
+
+[Complete review content following the format above]
+```
 
 ---
 

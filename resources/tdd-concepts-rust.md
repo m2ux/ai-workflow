@@ -1,8 +1,6 @@
 # Test-Driven Development Conceptual Lexicon for Rust
 
-**Document Purpose**: Comprehensive lexicon of TDD concepts from "Test Driven Development for Embedded C" with direct translations to Rust idioms and practices.
-
-**Last Updated**: 2025-10-10
+Comprehensive lexicon of TDD concepts from "Test Driven Development for Embedded C" with direct translations to Rust idioms and practices. The concepts described are adapted from embedded C contexts, and occasional C/C++ specific references may persist where they provide valuable historical or conceptual context.
 
 ---
 
@@ -28,6 +26,7 @@
 **Summary**: Bob Martin composed the Three Laws of TDD to provide guidance on alternating between writing test code and production code. These laws enforce a discipline where you let the code follow the tests, sticking to this discipline produces comprehensive tests and thoroughly tested production code. The laws prevent code from getting ahead of tests and ensure that every piece of production code is driven by a failing test.
 
 **The Three Laws**:
+
 1. Write no production code until you have a failing unit test
 2. Write only enough of a unit test to make it fail
 3. Write only enough production code to make the failing test pass
@@ -245,7 +244,7 @@ mod led_driver_tests {
   
     mod boundary_conditions {
         use super::*;
-      
+    
         #[test]
         fn test_out_of_bounds_led_is_off() {
             let driver = LedDriver::new(0xFF00);
@@ -256,7 +255,7 @@ mod led_driver_tests {
   
     mod state_transitions {
         use super::*;
-      
+    
         #[test]
         fn test_led_can_toggle() {
             let mut driver = LedDriver::new(0xFF00);
@@ -633,6 +632,7 @@ pub fn get_flash_driver() -> Box<dyn FlashDriver> {
 ### TDD Developer State Machine
 
 **The States**:
+
 1. Choose a test
 2. Write the test
 3. Make the test compile
@@ -720,6 +720,7 @@ fn buffer_returns_put_value() {
 **Summary**: The FIRST principles define the characteristics of good unit tests. Tests should be Fast (run quickly so they can be run frequently), Independent (tests don't depend on each other and can run in any order), Repeatable (produce the same results every time, with no randomness or environmental dependencies), Self-validating (have clear pass/fail criteria with no manual inspection needed), and Timely (written at the right time - ideally before the production code). Following these principles ensures tests remain valuable and maintainable throughout the project lifecycle.
 
 **The Principles**:
+
 - **F**ast: Tests run quickly
 - **I**ndependent: Tests don't depend on each other
 - **R**epeatable: Same results every time
@@ -825,7 +826,7 @@ impl LedDriver {
         if !self.is_valid_led_number(led_number) {
             return Err(LedError::InvalidLedNumber);
         }
-      
+    
         unsafe {
             *self.leds_address |= self.convert_led_number_to_bit(led_number);
         }
@@ -836,7 +837,7 @@ impl LedDriver {
         if !self.is_valid_led_number(led_number) {
             return Err(LedError::InvalidLedNumber);
         }
-      
+    
         unsafe {
             *self.leds_address &= !self.convert_led_number_to_bit(led_number);
         }
@@ -847,7 +848,7 @@ impl LedDriver {
         if !self.is_valid_led_number(led_number) {
             return false;
         }
-      
+    
         unsafe {
             (*self.leds_address & self.convert_led_number_to_bit(led_number)) != 0
         }
@@ -927,7 +928,7 @@ impl<T> CircularBuffer<T> {
         if self.is_full() {
             return Err(BufferError::Full);
         }
-      
+    
         self.buffer[self.write_index] = Some(value);
         self.write_index = (self.write_index + 1) % self.capacity;
         self.count += 1;
@@ -938,7 +939,7 @@ impl<T> CircularBuffer<T> {
         if self.is_empty() {
             return Err(BufferError::Empty);
         }
-      
+    
         let value = self.buffer[self.read_index].take()
             .ok_or(BufferError::Empty)?;
         self.read_index = (self.read_index + 1) % self.capacity;
@@ -970,7 +971,7 @@ mod tests {
         buffer.put(1).unwrap();
         buffer.put(2).unwrap();
         buffer.put(3).unwrap();
-      
+    
         assert_eq!(buffer.get().unwrap(), 1);
         assert_eq!(buffer.get().unwrap(), 2);
         assert_eq!(buffer.get().unwrap(), 3);
@@ -981,7 +982,7 @@ mod tests {
         let mut buffer = CircularBuffer::new(2);
         buffer.put(1).unwrap();
         buffer.put(2).unwrap();
-      
+    
         assert!(matches!(buffer.put(3), Err(BufferError::Full)));
     }
 }
@@ -1014,20 +1015,20 @@ impl<I: IoDriver> FlashDriver<I> {
         const PROGRAM_COMMAND: u8 = 0x40;
         const STATUS_REGISTER: u32 = 0x80;
         const READY_BIT: u8 = 1 << 7;
-      
+    
         self.io.write(COMMAND_REGISTER, PROGRAM_COMMAND);
         self.io.write(address, data);
-      
+    
         // Wait for ready
         while (self.io.read(STATUS_REGISTER) & READY_BIT) == 0 {
             // Spin wait
         }
-      
+    
         // Verify
         if self.io.read(address) != data {
             return Err(FlashError::VerificationFailed);
         }
-      
+    
         Ok(())
     }
 }
@@ -1039,28 +1040,28 @@ mod tests {
     #[test]
     fn flash_write_succeeds() {
         let mut mock_io = MockIoDriver::new();
-      
+    
         // Setup expectations
         mock_io.expect_write()
             .with(eq(0x80), eq(0x40))
             .times(1)
             .return_const(());
-      
+    
         mock_io.expect_write()
             .with(eq(0x1000), eq(0xAB))
             .times(1)
             .return_const(());
-      
+    
         mock_io.expect_read()
             .with(eq(0x80))
             .times(1)
             .returning(|_| 0x80);  // READY_BIT set
-      
+    
         mock_io.expect_read()
             .with(eq(0x1000))
             .times(1)
             .returning(|_| 0xAB);  // Verification
-      
+    
         let mut flash = FlashDriver::new(mock_io);
         flash.write(0x1000, 0xAB).unwrap();
     }
@@ -1143,6 +1144,7 @@ mod chrono_learning_tests {
 **Summary**: Adding the first test to legacy code is usually the hardest. Knowing what to expect and how to react can ease the process. The crash-to-pass algorithm helps you work through the challenges of getting legacy code into a test harness. You want to test some existing legacy code that is part of an interwoven mass of dependencies. The algorithm walks you through compilation errors, link errors, and runtime crashes, systematically addressing each problem by adding minimal stubs and test doubles until you have a passing test. Once the test infrastructure is in place, adding more tests becomes progressively easier.
 
 **The Algorithm**:
+
 1. Try to build test executable
 2. If link fails, create minimal stub
 3. If test crashes, add fake/stub
@@ -1308,7 +1310,7 @@ src/
     #[cfg(test)]
     mod tests {
         use super::*;
-      
+    
         #[test]
         fn test_something() { ... }
     }
@@ -1485,12 +1487,12 @@ mod tests {
             Utc.ymd(2025, 10, 10).and_hms(14, 0, 0)
         );
         let mut scheduler = Scheduler::new(time_service);
-      
+    
         scheduler.schedule_turn_on(7, Utc.ymd(2025, 10, 10).and_hms(18, 0, 0));
-      
+    
         time_service.advance(Duration::hours(4));
         scheduler.wake_up();
-      
+    
         // Verify event triggered
     }
 }
@@ -1545,7 +1547,7 @@ impl<T: TimeService, L: LightController> LightScheduler<T, L> {
   
     pub fn wake_up(&mut self) {
         let current_time = self.time_service.get_time();
-      
+    
         for event in &self.events {
             if self.should_trigger_event(event, current_time) {
                 self.execute_event(event);
@@ -1576,10 +1578,10 @@ mod tests {
         );
         let spy_light = SpyLightController::new();
         let mut scheduler = LightScheduler::new(fake_time, spy_light);
-      
+    
         scheduler.schedule_turn_on(7, Utc.ymd(2025, 10, 10).and_hms(18, 0, 0));
         scheduler.wake_up();
-      
+    
         assert!(spy_light.was_called_with(7, LightAction::On));
     }
 }
@@ -1864,9 +1866,9 @@ mod tests {
     fn controller_turns_on_led() {
         let fake_pin = FakeGpioPin::new();
         let mut controller = LedController::new(fake_pin);
-      
+    
         controller.turn_on();
-      
+    
         assert!(controller.is_on());
     }
 }
@@ -2175,7 +2177,7 @@ mod tests {
         buffer.put(1).unwrap();
         buffer.put(2).unwrap();
         buffer.put(3).unwrap();
-      
+    
         assert_eq!(buffer.get().unwrap(), 1);  // First in
         assert_eq!(buffer.get().unwrap(), 2);  // ...
         assert_eq!(buffer.get().unwrap(), 3);  // Last in
@@ -2186,7 +2188,7 @@ mod tests {
     fn buffer_returns_error_when_full() {
         let mut buffer = CircularBuffer::new(1);
         buffer.put(42).unwrap();
-      
+    
         assert!(matches!(buffer.put(99), Err(BufferError::Full)));
     }
 }
@@ -2315,7 +2317,7 @@ mod tests {
     fn internal_state_increments() {
         let mut component = Component::new();
         component.do_something();
-      
+    
         // Can access test-only API
         assert_eq!(component.get_internal_state(), 1);
     }
@@ -2344,12 +2346,12 @@ mod buffer_wrapping_behavior {
     #[test]
     fn buffer_with_wrap_overwrites_oldest() {
         let mut buffer = CircularBuffer::with_wrapping(3);
-      
+    
         buffer.put(1).unwrap();
         buffer.put(2).unwrap();
         buffer.put(3).unwrap();
         buffer.put(4).unwrap();  // Overwrites 1
-      
+    
         assert_eq!(buffer.get().unwrap(), 2);
         assert_eq!(buffer.get().unwrap(), 3);
         assert_eq!(buffer.get().unwrap(), 4);
@@ -2460,10 +2462,10 @@ proptest! {
         capacity in 1usize..50
     ) {
         let mut buffer = CircularBuffer::new(capacity);
-      
+    
         for value in values {
             let _ = buffer.put(value);  // May fail when full
-          
+        
             // Invariant: count never exceeds capacity
             prop_assert!(buffer.count() <= capacity);
         }
@@ -2475,7 +2477,7 @@ proptest! {
         operations in prop::collection::vec(any::<bool>(), 0..100)
     ) {
         let mut driver = LedDriver::new(0xFF00);
-      
+    
         for &should_turn_on in &operations {
             if should_turn_on {
                 driver.turn_on(led_number).unwrap();
@@ -2483,7 +2485,7 @@ proptest! {
                 driver.turn_off(led_number).unwrap();
             }
         }
-      
+    
         // Verify final state matches last operation
         let expected = operations.last().copied().unwrap_or(false);
         prop_assert_eq!(driver.is_on(led_number), expected);

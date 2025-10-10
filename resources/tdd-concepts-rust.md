@@ -14,8 +14,16 @@ Comprehensive lexicon of TDD concepts from "Test Driven Development for Embedded
 6. [TDD Workflow and State Machine](#tdd-workflow-and-state-machine)
 7. [Test Quality Principles](#test-quality-principles)
 8. [Examples and Patterns](#examples-and-patterns)
-9. [Legacy Code and Characterization](#legacy-code-and-characterization)
-10. [Advanced Techniques](#advanced-techniques)
+9. [Applying TDD to Existing Code](#applying-tdd-to-existing-code)
+10. [Test Patterns and Anti-Patterns](#test-patterns-and-anti-patterns)
+11. [Refactoring](#refactoring)
+12. [Hardware Abstraction Layer (HAL)](#hardware-abstraction-layer-hal)
+13. [Continuous Integration (CI)](#continuous-integration-ci)
+14. [Test Execution Modes](#test-execution-modes)
+15. [Design for Testability](#design-for-testability)
+16. [Benefits of TDD](#benefits-of-tdd)
+17. [Property-Based Testing](#property-based-testing)
+18. [Conclusion and Best Practices](#conclusion-and-best-practices)
 
 ---
 
@@ -1076,141 +1084,739 @@ mod tests {
 
 ---
 
-## Advanced Techniques
+## Applying TDD to Existing Code
 
-### Test-Driven Bug Fixes
+**Summary**: Adding tests to existing code that lacks sufficient test coverage is one of the most challenging aspects of adopting TDD. The book provides systematic strategies for this common situation, recognizing that most developers inherit legacy code rather than starting greenfield projects. The core philosophy is: you don't need perfect tests immediately - you need enough tests to enable safe refactoring. Then you can improve both the tests and the code incrementally.
 
-**Summary**: Bug fixes need tests too. The existence of a bug often shows where prior test efforts have failed. If you can write a unit test to reveal the bug, do so. If investigation is needed to track down the bug, do the investigation and capture some of your knowledge in tests as you go. Once the bug is isolated in a test, fix it and ensure the test passes. This test then becomes part of the regression suite, preventing the bug from ever returning.
+### The Crash-to-Pass Algorithm
 
-**Example**:
+**Summary**: Adding the first test to legacy code is usually the hardest. Knowing what to expect and how to react can ease the process. The crash-to-pass algorithm helps you work through compilation errors, link errors, and runtime crashes systematically. Once the test infrastructure is in place, adding more tests becomes progressively easier.
 
-```rust
-// Bug report: System crashes when processing empty input
-
-#[test]
-fn test_handles_empty_input_without_panic() {
-    let processor = DataProcessor::new();
-    let result = processor.process(vec![]);
-  
-    assert!(result.is_ok());  // Should not panic
-    assert_eq!(result.unwrap(), ProcessResult::Empty);
-}
-
-// This test fails and reveals the bug
-// Now fix the bug to make it pass
-
-pub fn process(&self, data: Vec<u8>) -> Result<ProcessResult, Error> {
-    if data.is_empty() {
-        return Ok(ProcessResult::Empty);  // Bug fix
-    }
-  
-    // Original code that assumed non-empty
-    let first = data[0];
-    // ...
-}
-```
-
-### Learning Tests
-
-**Summary**: Learning tests are tests written not to test your own code, but to learn how third-party code works. When working with a new library or API, write tests that exercise the features you plan to use. These tests document your understanding, verify that the library works as you expect, and will alert you if a library upgrade changes behavior you depend on. Learning tests are free (or maybe better than free!) - they provide documentation and confidence at minimal cost.
-
-**Example**:
-
-```rust
-#[cfg(test)]
-mod chrono_learning_tests {
-    use chrono::*;
-  
-    #[test]
-    fn learn_chrono_datetime_creation() {
-        let dt = Utc.ymd(2025, 10, 10).and_hms(14, 30, 0);
-        assert_eq!(dt.year(), 2025);
-        assert_eq!(dt.month(), 10);
-        assert_eq!(dt.day(), 10);
-    }
-  
-    #[test]
-    fn learn_chrono_duration_arithmetic() {
-        let dt1 = Utc.ymd(2025, 10, 10).and_hms(14, 0, 0);
-        let dt2 = dt1 + Duration::hours(2);
-        assert_eq!(dt2.hour(), 16);
-    }
-  
-    #[test]
-    fn learn_chrono_formatting() {
-        let dt = Utc.ymd(2025, 10, 10).and_hms(14, 30, 0);
-        let formatted = dt.format("%Y-%m-%d %H:%M:%S").to_string();
-        assert_eq!(formatted, "2025-10-10 14:30:00");
-    }
-}
-```
-
-### Crash to Pass
-
-**Summary**: Adding the first test to legacy code is usually the hardest. Knowing what to expect and how to react can ease the process. The crash-to-pass algorithm helps you work through the challenges of getting legacy code into a test harness. You want to test some existing legacy code that is part of an interwoven mass of dependencies. The algorithm walks you through compilation errors, link errors, and runtime crashes, systematically addressing each problem by adding minimal stubs and test doubles until you have a passing test. Once the test infrastructure is in place, adding more tests becomes progressively easier.
+**The Situation**: You want to test some existing legacy code that is part of an interwoven mass of dependencies.
 
 **The Algorithm**:
 
-1. Try to build test executable
-2. If link fails, create minimal stub
-3. If test crashes, add fake/stub
-4. Make test pass
-5. Refactor
+1. **Try to build a test executable** - Attempt to compile and link your first test
+2. **If compilation fails** - Add minimal includes and interface definitions  
+3. **If linking fails** - Create minimal stub implementations
+4. **If the test crashes** - Add test doubles for problematic dependencies
+5. **Make the test pass** - Implement just enough to get green
+6. **Refactor** - Clean up while keeping tests green
 
 **Example**:
 
 ```rust
-// Step 1: Try to write test for legacy code
+// Step 1: Write test for legacy code (will fail to compile)
 #[test]
 fn test_legacy_process_data() {
-    let result = legacy_process_data(&[1, 2, 3]);
+    let processor = LegacyProcessor::new();
+    let result = processor.process(&[1, 2, 3]);
     assert!(result.is_ok());
 }
 
-// Step 2: Compilation errors reveal dependencies
-// error: no method named `legacy_process_data`
-
-// Step 3: Create minimal interface
-fn legacy_process_data(data: &[u8]) -> Result<Vec<u8>, Error> {
-    todo!("extract from legacy code")
+// Step 2: Compilation fails - extract interface
+pub struct LegacyProcessor {
+    // Extract from legacy code
 }
 
-// Step 4: Test compiles but may panic/crash
-// Add necessary fakes/stubs for dependencies
+impl LegacyProcessor {
+    pub fn new() -> Self {
+        todo!("extract initialization")
+    }
+    
+    pub fn process(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+        todo!("extract from legacy code")
+    }
+}
 
-// Step 5: Extract actual implementation
-fn legacy_process_data(data: &[u8]) -> Result<Vec<u8>, Error> {
-    // Extracted and refactored legacy code
+// Step 3: Test compiles but may crash - add stubs for dependencies
+struct StubDatabase;
+impl Database for StubDatabase {
+    fn query(&self, _key: &str) -> Option<String> {
+        Some("test data".to_string())  // Stub return
+    }
+}
+
+// Step 4: Extract actual implementation piece by piece
+pub fn process(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+    if data.is_empty() {
+        return Ok(Vec::new());
+    }
+    // Extract legacy logic carefully, guided by tests
     Ok(data.iter().map(|&x| x * 2).collect())
 }
 
-// Step 6: Refactor while keeping tests green
+// Step 5: Add more tests as you understand the code
+#[test]
+fn test_legacy_handles_empty_input() {
+    let processor = LegacyProcessor::new();
+    let result = processor.process(&[]);
+    assert_eq!(result.unwrap(), Vec::<u8>::new());
+}
 ```
 
-### Characterization Tests
+### Finding and Breaking Seams
 
-**Summary**: Characterization tests describe the current behavior of existing code, not necessarily the ideal behavior. When working with legacy code that you don't fully understand, characterization tests document what the code actually does. This creates a safety net for refactoring - the tests will alert you if your changes alter the behavior. As you understand the code better, you can evolve these tests to enforce correct behavior rather than just current behavior.
+**Summary**: Code resists automated tests when it interacts with the operating system, hardware devices, or other tightly-coupled modules. A "seam" is a place where you can alter behavior without editing the code itself. Finding seams allows you to inject test doubles and isolate the code under test.
+
+**Types of Seams in Rust**:
 
 **Example**:
 
 ```rust
-// Documenting existing behavior, not ideal behavior
-#[test]
-fn characterize_legacy_quirk_returns_minus_one_for_empty() {
-    // This documents that empty input returns -1
-    // Not necessarily correct, but current behavior
-    let legacy = LegacyComponent::new();
-    let result = legacy.process_empty();
-    assert_eq!(result, -1);  // Documenting existing behavior
+// ❌ No seam - hard to test
+pub struct LegacyService {
+    // Direct dependencies
+}
+
+impl LegacyService {
+    pub fn process(&self) -> Result<(), Error> {
+        // Direct call to system time
+        let now = SystemTime::now();
+        
+        // Direct file I/O
+        let data = std::fs::read("/config.txt")?;
+        
+        // Hard to test!
+        Ok(())
+    }
+}
+
+// ✅ Seam via dependency injection
+pub struct LegacyService<T: TimeProvider, F: FileReader> {
+    time_provider: T,
+    file_reader: F,
+}
+
+impl<T: TimeProvider, F: FileReader> LegacyService<T, F> {
+    pub fn new(time_provider: T, file_reader: F) -> Self {
+        Self { time_provider, file_reader }
+    }
+    
+    pub fn process(&self) -> Result<(), Error> {
+        let now = self.time_provider.now();
+        let data = self.file_reader.read("/config.txt")?;
+        // Easy to test with fakes!
+        Ok(())
+    }
+}
+
+// Seam via cfg attribute
+#[cfg(not(test))]
+fn get_system_time() -> SystemTime {
+    SystemTime::now()
+}
+
+#[cfg(test)]
+fn get_system_time() -> SystemTime {
+    // Fixed time for testing
+    SystemTime::UNIX_EPOCH + Duration::from_secs(1_000_000)
+}
+
+// Seam via feature flags
+#[cfg(feature = "production")]
+fn load_config() -> Config {
+    Config::from_file("/etc/config.toml")
+}
+
+#[cfg(not(feature = "production"))]
+fn load_config() -> Config {
+    Config::default()  // Test-friendly default
+}
+```
+
+### Start with Something That Has Less Baggage
+
+**Summary**: If you encounter a function that's deeply entangled in dependencies, don't give up - but you might start elsewhere. Find simpler entry points first to build up your testing infrastructure and confidence before tackling the most complex areas.
+
+**Strategy**:
+
+```rust
+// Legacy codebase with various levels of complexity
+
+// ✅ Start here - simple, few dependencies
+pub fn calculate_checksum(data: &[u8]) -> u16 {
+    data.iter().fold(0u16, |acc, &b| acc.wrapping_add(b as u16))
 }
 
 #[test]
-fn characterize_legacy_handles_max_value() {
-    let legacy = LegacyComponent::new();
-    let result = legacy.process(u32::MAX);
-    // Document what actually happens, even if surprising
-    assert_eq!(result, 0);  // Wraps around
+fn test_checksum_calculation() {
+    assert_eq!(calculate_checksum(&[1, 2, 3]), 6);
+    // Easy win - builds confidence
 }
+
+// ⏳ Tackle next - moderate dependencies
+pub fn validate_data(data: &[u8]) -> Result<(), ValidationError> {
+    // Some dependencies, but manageable
+}
+
+// ⏸️ Save for later - deeply entangled
+pub fn process_with_database_and_network(data: &[u8]) -> Result<(), Error> {
+    // Database connections, network calls, global state
+    // Attack this after building test infrastructure
+}
+```
+
+### Test-Driven Bug Fixes
+
+**Summary**: Bug fixes need tests too. The existence of a bug often shows where prior test efforts have failed. Write a test that reveals the bug first, then fix it. This test becomes part of the regression suite, preventing the bug from ever returning.
+
+**Workflow**:
+
+```rust
+// 1. Bug report received
+// "System panics when processing empty vector"
+
+// 2. Write test that reproduces the bug (TDD even for fixes!)
+#[test]
+fn test_bug_123_handles_empty_input() {
+    let processor = DataProcessor::new();
+    
+    // This test will fail/panic, exposing the bug
+    let result = processor.process(vec![]);
+    
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), ProcessResult::Empty);
+}
+
+// 3. Fix the bug to make test pass
+impl DataProcessor {
+    pub fn process(&self, data: Vec<u8>) -> Result<ProcessResult, Error> {
+        // Bug fix: handle empty input
+        if data.is_empty() {
+            return Ok(ProcessResult::Empty);
+        }
+        
+        // Original code that assumed non-empty
+        let first = data[0];
+        // ... rest of implementation
+    }
+}
+
+// 4. Test now passes and prevents regression
+```
+
+### Dealing with Dependency Octopus
+
+**Summary**: Legacy code often has a "dependency octopus" - the code under test depends on components, which depend on other components (transitively), creating a web of dependencies that hinders getting code into a test harness. There are hidden dependencies everywhere. Without managing these dependencies, you might find your whole system being initialized in the test case.
+
+**Problem**:
+
+```rust
+// Dependency octopus example
+pub struct LegacyModule {
+    // Depends on component A
+    component_a: ComponentA,
+}
+
+// ComponentA depends on B, C, and D
+pub struct ComponentA {
+    b: ComponentB,
+    c: ComponentC,  
+    d: ComponentD,
+}
+
+// ComponentB depends on database, network, filesystem...
+// Testing LegacyModule requires initializing the entire tree!
+```
+
+**Solution with Test Doubles**:
+
+```rust
+// Break dependencies with traits
+pub trait ComponentAInterface {
+    fn do_work(&self) -> Result<(), Error>;
+}
+
+pub struct LegacyModule<A: ComponentAInterface> {
+    component_a: A,
+}
+
+// Fake component for testing
+struct FakeComponentA;
+impl ComponentAInterface for FakeComponentA {
+    fn do_work(&self) -> Result<(), Error> {
+        Ok(())  // Simple, no dependencies
+    }
+}
+
+#[test]
+fn test_legacy_module_isolated() {
+    let fake_a = FakeComponentA;
+    let module = LegacyModule::new(fake_a);
+    // Test in isolation without dependency tree
+}
+```
+
+### Refactoring Legacy Code Safely
+
+**Summary**: With a comprehensive test suite from TDD, you can refactor legacy code with confidence. The tests immediately tell you if you break anything. The book emphasizes: work isn't done when code works - it's done when code is clean and works.
+
+**Process**:
+
+```rust
+// Original legacy code - works but messy
+pub fn legacy_calculate_total(items: &[Item]) -> f64 {
+    let mut total = 0.0;
+    let mut i = 0;
+    loop {
+        if i >= items.len() {
+            break;
+        }
+        let item = &items[i];
+        let price = item.price;
+        let qty = item.quantity;
+        let subtotal = price * qty as f64;
+        total = total + subtotal;
+        i = i + 1;
+    }
+    total
+}
+
+// Step 1: Add characterization tests
+#[test]
+fn test_legacy_calculate_total() {
+    let items = vec![
+        Item { price: 10.0, quantity: 2 },
+        Item { price: 5.0, quantity: 3 },
+    ];
+    // Document current behavior
+    assert_eq!(legacy_calculate_total(&items), 35.0);
+}
+
+// Step 2: Refactor with confidence
+pub fn legacy_calculate_total(items: &[Item]) -> f64 {
+    items.iter()
+        .map(|item| item.price * item.quantity as f64)
+        .sum()
+}
+
+// Step 3: Test still passes - refactoring successful!
+// Step 4: Add more tests for edge cases now that code is cleaner
+```
+
+### Copy-Paste-Tweak Anti-Pattern
+
+**Summary**: When adding tests to legacy code, avoid blindly copying existing tests and tweaking values. This creates duplication that obscures what's important in each test. Instead, refactor as you go - extract common setup, use helper functions, and make each test's unique purpose clear.
+
+**Example**:
+
+```rust
+// ❌ Copy-paste-tweak - duplication obscures intent
+#[test]
+fn test_user_1() {
+    let db = setup_database();
+    let user = create_user("Alice", 25, "alice@example.com");
+    db.insert(user);
+    let result = db.find_by_name("Alice");
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().age, 25);
+    teardown_database(db);
+}
+
+#[test]
+fn test_user_2() {
+    let db = setup_database();  // Duplicated
+    let user = create_user("Bob", 30, "bob@example.com");
+    db.insert(user);
+    let result = db.find_by_name("Bob");
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().age, 30);
+    teardown_database(db);  // Duplicated
+}
+
+// ✅ Refactored - clear intent, no duplication
+struct TestFixture {
+    db: Database,
+}
+
+impl TestFixture {
+    fn new() -> Self {
+        Self { db: setup_database() }
+    }
+    
+    fn insert_user(&mut self, name: &str, age: u32, email: &str) -> User {
+        let user = create_user(name, age, email);
+        self.db.insert(user.clone());
+        user
+    }
+    
+    fn assert_user_exists(&self, name: &str, expected_age: u32) {
+        let result = self.db.find_by_name(name);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().age, expected_age);
+    }
+}
+
+impl Drop for TestFixture {
+    fn drop(&mut self) {
+        teardown_database(&self.db);
+    }
+}
+
+#[test]
+fn test_find_alice() {
+    let mut fixture = TestFixture::new();
+    fixture.insert_user("Alice", 25, "alice@example.com");
+    fixture.assert_user_exists("Alice", 25);
+}
+
+#[test]
+fn test_find_bob() {
+    let mut fixture = TestFixture::new();
+    fixture.insert_user("Bob", 30, "bob@example.com");
+    fixture.assert_user_exists("Bob", 30);
+}
+```
+
+### Don't Let Code Get Ahead of Tests (Even in Legacy Code)
+
+**Summary**: Even when working with legacy code, resist the temptation to implement anticipated features or "obvious" improvements. Let the code follow the tests. This discipline produces comprehensive test coverage and prevents you from breaking existing behavior unknowingly.
+
+**Example**:
+
+```rust
+// You're adding tests to legacy code and discover it's missing validation
+
+// ❌ Don't do this
+impl LegacyProcessor {
+    pub fn process(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+        // "Obviously" we should add all these validations!
+        if data.is_empty() { return Err(Error::Empty); }
+        if data.len() > 1000 { return Err(Error::TooLarge); }
+        if !self.is_valid_format(data) { return Err(Error::InvalidFormat); }
+        // But no tests require these yet...
+        
+        // Original legacy logic
+        Ok(data.to_vec())
+    }
+}
+
+// ✅ Do this - let tests drive improvements
+#[test]
+fn test_legacy_process_basic_case() {
+    let processor = LegacyProcessor::new();
+    let result = processor.process(&[1, 2, 3]);
+    assert!(result.is_ok());
+}
+
+// Now test reveals we need empty handling
+#[test]
+fn test_legacy_process_empty_input() {
+    let processor = LegacyProcessor::new();
+    let result = processor.process(&[]);
+    assert!(result.is_err());  // Fails! Now we know we need this
+}
+
+// Add only what's needed for this test
+impl LegacyProcessor {
+    pub fn process(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+        if data.is_empty() {
+            return Err(Error::Empty);  // Only add this validation
+        }
+        // Original logic
+        Ok(data.to_vec())
+    }
+}
+
+// Continue incrementally with more tests
+```
+
+### Identify Change Points and Test Points
+
+**Summary**: Michael Feathers' legacy code change algorithm recognizes that where you need to make changes (change points) is often not where you can write tests (test points). The strategy is to find test points, write tests there, then use those tests as a safety net while making changes.
+
+**Strategy**:
+
+```rust
+// Change point: Deep inside a complex function
+pub fn complex_legacy_function(data: &[u8]) -> Result<Output, Error> {
+    // 200 lines of complex logic
+    // ...
+    // Line 150: BUG IS HERE - need to change this
+    let problematic_calculation = buggy_calc(data);
+    // ...
+    // More complex logic
+}
+
+// ❌ Can't easily test line 150 directly
+
+// ✅ Test point: Extract the calculation
+fn calculate_value(data: &[u8]) -> i32 {
+    // Extracted from legacy function
+    // Now we can test this in isolation
+    data.iter().map(|&x| x as i32).sum()
+}
+
+#[test]
+fn test_extracted_calculation() {
+    assert_eq!(calculate_value(&[1, 2, 3]), 6);
+    assert_eq!(calculate_value(&[]), 0);
+}
+
+// Now refactor legacy function to use extracted function
+pub fn complex_legacy_function(data: &[u8]) -> Result<Output, Error> {
+    // ...
+    let calculated_value = calculate_value(data);  // Use tested function
+    // ...
+}
+
+// Change point and test point are now aligned
+```
+
+### Characterization Before Refactoring
+
+**Summary**: Before refactoring legacy code, write characterization tests that document what it currently does. These tests create a safety net - they'll alert you if your changes alter behavior unexpectedly. As you understand the code better, evolve these tests from documenting current behavior to enforcing correct behavior.
+
+**Example**:
+
+```rust
+// Phase 1: Characterization - document current behavior
+#[test]
+fn characterize_current_behavior() {
+    let legacy = LegacyCalculator::new();
+    
+    // Document actual behavior, even if surprising
+    assert_eq!(legacy.calculate(0), -1);  // Returns -1 for zero?
+    assert_eq!(legacy.calculate(100), 100);  // OK
+    assert_eq!(legacy.calculate(u32::MAX), 0);  // Wraps around?
+}
+
+// Phase 2: Safety net established, now refactor
+pub fn calculate(&self, value: u32) -> i32 {
+    // Refactor internal implementation
+    // Tests will catch if behavior changes
+    match value {
+        0 => -1,  // Preserve quirk initially
+        v if v == u32::MAX => 0,  // Preserve wrapping
+        v => v as i32,
+    }
+}
+
+// Phase 3: Tests still pass, now we can change behavior intentionally
+#[test]
+fn test_corrected_zero_handling() {
+    let legacy = LegacyCalculator::new();
+    assert_eq!(legacy.calculate(0), 0);  // Fix the quirk
+}
+
+// Update implementation with new test driving the change
+pub fn calculate(&self, value: u32) -> i32 {
+    // Now fix the quirk, guided by new test
+    value as i32
+}
+```
+
+### Incremental Coverage Improvement
+
+**Summary**: You don't need to test everything at once. Build test coverage incrementally, focusing on areas you're actively changing or that have the highest risk. Use the 0-1-N pattern: start with zero/empty cases, add one simple case, then handle multiple cases.
+
+**Example**:
+
+```rust
+// Legacy function with no tests
+pub fn process_orders(orders: Vec<Order>) -> Summary {
+    // 100 lines of complex logic
+}
+
+// Step 1: Test the zero case
+#[test]
+fn process_empty_orders() {
+    let result = process_orders(vec![]);
+    assert_eq!(result.total, 0.0);
+    assert_eq!(result.count, 0);
+}
+
+// Step 2: Test one simple case  
+#[test]
+fn process_single_order() {
+    let order = Order::new(100.0);
+    let result = process_orders(vec![order]);
+    assert_eq!(result.total, 100.0);
+    assert_eq!(result.count, 1);
+}
+
+// Step 3: Test multiple cases
+#[test]
+fn process_multiple_orders() {
+    let orders = vec![
+        Order::new(100.0),
+        Order::new(200.0),
+        Order::new(50.0),
+    ];
+    let result = process_orders(orders);
+    assert_eq!(result.total, 350.0);
+    assert_eq!(result.count, 3);
+}
+
+// Step 4: Add edge cases as you discover them
+#[test]
+fn process_orders_with_negative_amounts() {
+    let orders = vec![Order::new(-50.0)];
+    let result = process_orders(orders);
+    // Document/test the behavior
+}
+```
+
+### Learning Tests for Legacy Dependencies
+
+**Summary**: When legacy code uses third-party libraries you don't understand, write learning tests. These tests document how the library works, verify your assumptions, and will alert you if a library upgrade changes behavior you depend on. Learning tests are free (or better than free!) - they provide documentation and confidence.
+
+**Example**:
+
+```rust
+// Legacy code uses chrono but team doesn't understand it well
+
+#[cfg(test)]
+mod chrono_learning_tests {
+    use chrono::*;
+    
+    #[test]
+    fn learn_how_legacy_code_uses_duration() {
+        // Legacy code does this - what does it mean?
+        let dt = Utc.ymd(2025, 1, 1).and_hms(12, 0, 0);
+        let dt2 = dt + Duration::hours(24);
+        
+        // Learning: adding 24 hours moves to next day
+        assert_eq!(dt2.day(), 2);
+        assert_eq!(dt2.hour(), 12);
+    }
+    
+    #[test]
+    fn learn_legacy_date_comparison() {
+        let dt1 = Utc.ymd(2025, 1, 1).and_hms(12, 0, 0);
+        let dt2 = Utc.ymd(2025, 1, 2).and_hms(12, 0, 0);
+        
+        // Learning: comparison operators work as expected
+        assert!(dt2 > dt1);
+        assert!(dt1 < dt2);
+    }
+    
+    // These tests help understand legacy code's assumptions
+}
+```
+
+### The "Slow Down to Go Fast" Mindset
+
+**Summary**: Adding tests to legacy code may feel slower initially, but it leads to faster overall development. When you test after making changes (Debug-Later), you might find many mistakes, but some will escape. TDD/adding tests first finds them immediately. You also spend less time hunting down root causes - in TDD the root cause is obvious (it's the code you just changed).
+
+**Benefits Applied to Legacy Code**:
+
+```rust
+// Scenario: Legacy code needs feature added
+
+// ❌ Debug-Later approach
+// 1. Add feature (1 hour)
+// 2. Manual testing (30 min)
+// 3. Bug discovered in production (2 days later)
+// 4. Debug investigation (2 hours)
+// 5. Fix (30 min)
+// 6. More manual testing (30 min)
+// Total: 5+ hours spread over days, plus production incident
+
+// ✅ Test-First approach  
+// 1. Write test for new feature (20 min)
+#[test]
+fn test_new_discount_feature() {
+    let calc = PriceCalculator::new();
+    assert_eq!(calc.with_discount(100.0, 0.1), 90.0);
+}
+
+// 2. Test fails - good!
+// 3. Add feature (45 min)
+// 4. Test passes immediately
+// 5. Bugs caught in test phase, not production
+// Total: ~1 hour, no production incidents
+
+// The "slow" upfront investment pays off
+```
+
+### Extracting Testable Units
+
+**Summary**: Long functions, tight coupling, and complex conditionals all lead to untestable code. Extract smaller, testable units from legacy code. Each extraction gets its own tests, making the system progressively more testable and maintainable.
+
+**Example**:
+
+```rust
+// Legacy: One giant function
+pub fn process_customer_order(order: Order) -> Result<Receipt, Error> {
+    // 150 lines of:
+    // - validation
+    // - price calculation
+    // - tax calculation  
+    // - inventory updates
+    // - payment processing
+    // - receipt generation
+    // Impossible to test individual pieces!
+}
+
+// Refactored: Extract testable units
+pub fn process_customer_order(order: Order) -> Result<Receipt, Error> {
+    let validated = validate_order(&order)?;
+    let price = calculate_price(&validated)?;
+    let tax = calculate_tax(price)?;
+    update_inventory(&validated)?;
+    process_payment(price + tax)?;
+    Ok(generate_receipt(&validated, price, tax))
+}
+
+// Now each piece can be tested independently
+#[test]
+fn test_validate_order_rejects_empty() {
+    let empty_order = Order::default();
+    assert!(validate_order(&empty_order).is_err());
+}
+
+#[test]
+fn test_calculate_price_sums_items() {
+    let order = ValidatedOrder::with_items(vec![
+        Item { price: 10.0, quantity: 2 },
+        Item { price: 5.0, quantity: 1 },
+    ]);
+    assert_eq!(calculate_price(&order).unwrap(), 25.0);
+}
+
+#[test]
+fn test_calculate_tax_applies_rate() {
+    assert_eq!(calculate_tax(100.0).unwrap(), 10.0);  // 10% tax
+}
+
+// Each function is focused and testable
+```
+
+### Use Test Coverage as a Guide, Not a Goal
+
+**Summary**: TDD provides the right test coverage as a by-product, not as an explicit goal. When adding tests to legacy code, don't aim for 100% coverage immediately. Focus on high-risk areas, code you're changing, and building enough coverage to enable safe refactoring.
+
+**Approach**:
+
+```rust
+// Legacy codebase - where to start testing?
+
+// ✅ Priority 1: Code you're actively changing
+#[test]
+fn test_feature_being_modified() {
+    // Add tests here first - you need safety net for changes
+}
+
+// ✅ Priority 2: High-risk areas (complex logic, lots of bugs)
+#[test]
+fn test_complex_calculation_that_often_breaks() {
+    // Add tests to prevent future bugs
+}
+
+// ✅ Priority 3: Public API surface
+#[test]
+fn test_public_interface_behavior() {
+    // Document and protect public contracts
+}
+
+// ⏸️ Lower priority: Stable, simple, well-understood code
+// Can add tests later as you touch this code
+
+// Use cargo tarpaulin to see coverage trends
+// cargo tarpaulin --out Html
+// But don't chase 100% - chase confidence
 ```
 
 ---
@@ -1596,72 +2202,6 @@ mod tests {
 ---
 
 ## Test Patterns and Anti-Patterns
-
-### Don't Let Code Get Ahead of Tests
-
-**Principle**: Only write code required by failing tests
-
-**Example**:
-
-```rust
-// ❌ Don't do this
-#[test]
-fn test_simple_addition() {
-    assert_eq!(add(2, 3), 5);
-}
-
-fn add(a: i32, b: i32) -> i32 {
-    // Don't implement multiplication, division, etc.
-    // until tests require it!
-    a + b
-}
-
-// ✅ Do this - minimal implementation
-```
-
-### Test Code Duplication
-
-**Example**:
-
-```rust
-// ❌ Duplication
-#[test]
-fn test_led_1() {
-    let mut virtual_leds = 0;
-    let mut driver = LedDriver::new(&mut virtual_leds);
-    driver.turn_on(1);
-    assert!(driver.is_on(1));
-}
-
-#[test]
-fn test_led_2() {
-    let mut virtual_leds = 0;  // Duplicated setup
-    let mut driver = LedDriver::new(&mut virtual_leds);  // Duplicated
-    driver.turn_on(2);
-    assert!(driver.is_on(2));
-}
-
-// ✅ Extract fixture
-#[test]
-fn test_led_1() {
-    let (mut driver, _leds) = create_led_driver();
-    driver.turn_on(1);
-    assert!(driver.is_on(1));
-}
-
-#[test]
-fn test_led_2() {
-    let (mut driver, _leds) = create_led_driver();
-    driver.turn_on(2);
-    assert!(driver.is_on(2));
-}
-
-fn create_led_driver() -> (LedDriver, Box<u16>) {
-    let mut virtual_leds = Box::new(0u16);
-    let driver = LedDriver::new(&mut *virtual_leds as *mut u16);
-    (driver, virtual_leds)
-}
-```
 
 ### Boundary Value Testing
 
@@ -2338,69 +2878,13 @@ mod tests {
 
 **Summary**: Well-structured tests become a form of executable and unambiguous documentation. A working example is worth 1,000 words. Unlike written documentation that can become outdated, tests must stay current or they fail. They document not just what the code should do, but exactly how to use it, what inputs are valid, what errors can occur, and what the expected outputs are. Tests serve as living specifications that are always up-to-date and verified.
 
-**Principle**: Tests document behavior better than comments
-
-**Rust Example**:
-
-```rust
-/// CircularBuffer wraps around when full
-#[cfg(test)]
-mod buffer_wrapping_behavior {
-    use super::*;
-  
-    /// When buffer is full and circular, oldest item is overwritten
-    #[test]
-    fn buffer_with_wrap_overwrites_oldest() {
-        let mut buffer = CircularBuffer::with_wrapping(3);
-  
-        buffer.put(1).unwrap();
-        buffer.put(2).unwrap();
-        buffer.put(3).unwrap();
-        buffer.put(4).unwrap();  // Overwrites 1
-  
-        assert_eq!(buffer.get().unwrap(), 2);
-        assert_eq!(buffer.get().unwrap(), 3);
-        assert_eq!(buffer.get().unwrap(), 4);
-    }
-}
-```
-
 ### Improved Design
 
-**Principle**: Testable code is better designed (loose coupling, high cohesion)
-
-**Example**:
-
-```rust
-// TDD naturally leads to this design
-pub struct Scheduler<T, L> 
-where
-    T: TimeService,
-    L: LightController,
-{
-    time_service: T,      // Dependency injected
-    light_controller: L,  // Dependency injected
-    events: Vec<Event>,
-}
-
-// Rather than this
-pub struct Scheduler {
-    // Hard-coded dependencies - difficult to test
-    // internal SystemTime::now() calls
-    // internal GPIO register access
-}
-```
+**Summary**: TDD naturally guides design by encouraging loose coupling and high cohesion. A good design is a testable design. If code is hard to test, it's probably poorly designed. By writing tests first, you're forced to think about interfaces, dependencies, and how components will interact.
 
 ### Peace of Mind
 
-**Principle**: Comprehensive test suite provides confidence
-
-**Rust Benefits**:
-
-- `cargo test` before commit
-- Automated CI runs tests
-- Regression suite catches breakage
-- Refactoring with confidence
+**Summary**: Having thoroughly tested code with a comprehensive regression test suite gives confidence. TDD developers report better sleep patterns and fewer interrupted weekends.
 
 ---
 
@@ -2607,28 +3091,26 @@ pub fn calculate_total(items: &[Item]) -> f64 {
 ### Key Takeaways for Rust TDD
 
 1. **Use Cargo Test Framework**: Built-in, powerful, zero setup
-2. **Leverage Type System**: Many C tests unnecessary due to Rust's type safety
-3. **Use Traits for Abstraction**: Better than C function pointers
+2. **Leverage Type System**: Many tests unnecessary due to Rust's type safety
+3. **Use Traits for Abstraction**: Better than function pointers
 4. **Embrace Result<T, E>**: Test both Ok and Err cases
-5. **Use Feature Flags**: Better than C preprocessor for platform-specific code
+5. **Use Feature Flags**: Better than preprocessor for platform-specific code
 6. **Mock with mockall**: Powerful mocking for complex interactions
-7. **Property-Based Testing**: Rust has excellent support via proptest
+7. **Property-Based Testing**: Excellent support via proptest
 8. **Integration Tests**: Use `tests/` directory for end-to-end tests
-9. **Test Documentation**: Use `cargo test --doc` for doc tests
+9. **For Legacy Code**: Apply strategies from [Applying TDD to Existing Code](#applying-tdd-to-existing-code)
 10. **CI/CD**: Automate testing with GitHub Actions or similar
 
 ### Rust-Specific Advantages
 
-- **Ownership & Lifetimes**: Compiler catches many bugs tests would catch in C
+- **Ownership & Lifetimes**: Compiler catches many bugs
 - **Option<T> & Result<T,E>**: Explicit error handling reduces defensive testing
-- **Traits**: More flexible than C interfaces
+- **Traits**: More flexible abstraction mechanism
 - **No UB in Safe Code**: Fewer edge cases to test
-- **Package Manager**: Easy to add test dependencies (mockall, proptest, etc.)
+- **Package Manager**: Easy to add test dependencies
 - **Built-in Benchmarking**: Performance testing integrated
 
 ### The TDD Mindset
-
-**Universal to C and Rust**:
 
 1. Write test first
 2. Watch it fail

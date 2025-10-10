@@ -11,8 +11,8 @@ If you are not running at the repository root (where `.git` exists), also reques
 - **repo_root** (optional): Path to the repository root. If omitted, assume the current working directory is the repo root.
 
 ### Output Requirements
-- Write the progress report to `docs/planning/progress/` at the repository root.
-- Include today’s date (read from the system at runtime) both in the filename and in the report itself.
+- Write the progress report to `.ai/progress/` at the repository root.
+- Include today's date (read from the system at runtime) both in the filename and in the report itself.
 - Filename format: `YYYY-MM-DD-progress-<slug>.md` where `<slug>` is a short descriptive slug (derived from the feature title or chat transcript; lowercase, words separated by hyphens; fallback to `progress`).
 
 ### Date Handling
@@ -118,9 +118,9 @@ Produce a markdown report with the following sections. Keep prose crisp and scan
    - Raw command outputs (truncated as needed)
 
 ### Saving the Report
-1) Ensure the directory exists (create it if not): `docs/planning/progress/`.
+1) Ensure the directory exists (create it if not): `.ai/progress/`.
 2) Generate a slug from the feature title; fallback to `progress` if extraction fails.
-3) Save the file as: `docs/planning/progress/YYYY-MM-DD-progress-<slug>.md`.
+3) Save the file as: `.ai/progress/YYYY-MM-DD-progress-<slug>.md`.
 4) After writing, print the absolute path to the created file.
 
 ### Interaction Flow (What to Ask the User)

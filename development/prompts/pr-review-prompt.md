@@ -1,0 +1,542 @@
+# PR Review Analysis and Response Prompt
+
+## Purpose
+This prompt helps analyze review comments from a GitHub Pull Request and craft thoughtful, professional responses in markdown format for easy copying into PR replies.
+
+## Prerequisites
+- GitHub CLI (`gh`) must be installed and authenticated
+- Access to the target repository
+- **CRITICAL**: A specific PR number must be provided - do not proceed without one
+
+## Instructions
+
+### Step 1: Gather PR Comments
+**RULE**: Do not proceed without a specific PR number being provided by the user.
+
+#### 1.1: Retrieve All PR Comments
+Use the following command to retrieve all review comments for the specified PR:
+```bash
+gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate
+```
+
+Replace `[PR_NUMBER]` with the actual PR number provided by the user.
+
+#### 1.2: Verify Complete Comment Capture
+**CRITICAL**: Ensure no comments are missed by performing verification:
+
+```bash
+# Get total comment count
+gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '. | length'
+
+# Get all reviewer comments (excluding PR author) with file context
+gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]") | {id: .id, body: .body, html_url: .html_url, path: .path, line: .line}'
+
+# Save all comments for comprehensive analysis
+gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]")' > /tmp/all_reviewer_comments.json
+```
+
+#### 1.2.5: Filter to Unresolved Comments Only
+**CRITICAL**: Focus analysis on unresolved comments to avoid redundant work on already-addressed issues:
+
+```bash
+# Check latest review dates to identify most recent review round
+gh pr view [PR_NUMBER] --json reviews | jq '.reviews[] | {author: .author.login, state: .state, submittedAt: .submittedAt}' | tail -5
+
+# Filter to comments from latest review round (adjust date based on latest review)
+gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]" and .updated_at >= "[LATEST_REVIEW_DATE]") | {id: .id, body: .body, html_url: .html_url, path: .path, line: .line, created_at: .created_at, updated_at: .updated_at}' > /tmp/unresolved_comments.json
+
+# Verify unresolved comment count
+cat /tmp/unresolved_comments.json | jq -s '. | length'
+
+# Use unresolved comments for all subsequent analysis
+cp /tmp/unresolved_comments.json /tmp/all_reviewer_comments.json
+```
+
+**Unresolved Comment Identification Strategy:**
+- **Latest Review Round**: Filter to comments from the most recent review submission date
+- **Updated Comments**: Include comments updated after resolution attempts
+- **Exclude Resolved Threads**: Comments from earlier review rounds that haven't been updated are likely resolved
+- **Date-Based Filtering**: Use `updated_at >= "YYYY-MM-DDTHH:MM:SSZ"` format for precise filtering
+
+#### 1.3: Identify Question-Type Comments
+Find all question-type comments that require specific technical responses:
+```bash
+cat /tmp/all_reviewer_comments.json | jq -r '.body' | grep -i "what\|how\|why\|which" | nl
+```
+
+**Verification Checklist:**
+- [ ] Total comment count confirmed using: `gh api ... | jq '[.[] | select(.user.login != "[PR_AUTHOR]")] | length'`
+- [ ] All reviewer comments captured (excluding PR author's self-notes)
+- [ ] **Unresolved comments filtered**: Latest review round date identified and applied as filter
+- [ ] **Unresolved comment count verified**: Focused analysis scope confirmed (typically 10-30 comments vs 40-60 total)
+- [ ] Question-type comments identified and categorized from unresolved set
+- [ ] No comments appear truncated or missing
+- [ ] Comments saved in structured format for analysis: `/tmp/all_reviewer_comments.json`
+- [ ] Editorial suggestions (```suggestion blocks) distinguished from substantive questions
+- [ ] Cross-reference final document against unresolved comment list to prevent gaps
+
+### Step 2: Analyze Comment Relevance
+For each review comment retrieved:
+
+1. **Read the comment context**: Note the line numbers, file paths, and specific concerns raised
+2. **Compare against current document/code**: Determine if the comment still applies to the latest version
+3. **Categorize comments**:
+   - Still applicable and needs response
+   - Already addressed in updates
+   - No longer relevant due to changes
+   - Needs clarification or discussion
+
+### Step 3: Create Response List
+Generate a numbered list of applicable review comments that still need responses, including:
+- Brief description of the concern
+- File path and line number from the comment (extract from `path` and `line` fields in GitHub comment API)
+- Link to the original GitHub discussion
+
+**File Context Requirements:**
+- Use relative paths from repository root (e.g., `multichain-engine/src/ada/rpc.rs` not absolute paths)
+- Include line number where the comment was made (e.g., `:464` for line 464)
+- This provides immediate context for locating the specific code being discussed
+
+Format example:
+```
+1. Clarify "graceful degradation" under Operational Requirements — what behavior is expected when Chain Sync is unavailable - docs/features/cardano-integration.md:45 [Discussion link](https://github.com/input-output-hk/partner-chains-mcs/pull/43#discussion_r2288831775)
+```
+
+### Step 4: Craft Thoughtful Responses
+For each applicable comment, provide responses that are:
+
+**Professional and Technical**:
+- Use measured, technical language appropriate for software development
+- Avoid hyperbolic statements and superlatives
+- Focus on factual observations and technical merit
+- Write in the tone of a senior software engineer
+
+**Comprehensive and Nuanced**:
+- Address the specific concern raised
+- Provide concrete examples where helpful
+- Include implementation details when relevant
+- Consider trade-offs and alternatives
+- Reference related standards or patterns when applicable
+
+**Properly Formatted**:
+- Present each response using blockquotes (>) for italic formatting, NOT code blocks
+- Use combined comment and link format: `**Comment:** ["comment text"](link)`
+- Include "Optional doc wording" suggestions when proposing text changes
+- Structure responses for direct pasting into PR comments
+- Co-locate questions and responses in the same section for readability
+
+### Step 5: Response Format Template
+Use this format for each response section:
+
+```markdown
+### [NUMBER]. [Brief Description] - [FILE_PATH:LINE_NUMBER]
+
+**Comment:** ["exact comment text"](https://github.com/[repo]/pull/[PR]#discussion_r[ID])
+
+**Response:**
+
+> [Detailed explanation addressing the concern]
+> 
+> **[Section heading if needed]:**
+> - [Bullet point elaborating on key aspects]
+> - [Additional technical details]
+> - [Implementation considerations]
+> 
+> **Optional doc wording:**
+> "[Suggested documentation text]"
+> 
+> [Concluding statement or summary]
+```
+
+**Critical Format Requirements (Updated from PR43 Experience):**
+- Use `>` blockquotes for ALL response content (creates italic formatting)
+- Never use markdown code blocks (` ```markdown `) for responses
+- Always combine comment text and link in single line: `**Comment:** ["text"](link)`
+- Co-locate questions and responses in the same section for readability
+- **MANDATORY**: Include "Follow-up Actions:" sub-section in every response
+- Embed specific, actionable follow-up items within each response section
+- Include comprehensive citations **[ref]** for all technical claims
+- Reference target document being reviewed with clear restructuring strategy
+- Perform gap analysis - initial analysis typically misses 40-60% of comments
+- Ensure responses are ready for direct copying to PR threads
+
+### Step 6: Create Comprehensive Review Document
+**MANDATORY**: Create a complete review analysis document for permanent record and reference.
+
+#### 6.1: Document Location
+Create the review document at:
+```
+[PROJECT_ROOT]/.ai/reviews/[FEATURE_AREA]/[YYYY-MM-DD]-pr[PR_NUMBER]-review-analysis-and-responses.md
+```
+
+**Examples:**
+- For Cardano integration: `.ai/reviews/cardano-integration/2025-08-27-pr43-review-analysis-and-responses.md`
+- For general features: `.ai/reviews/2025-08-27-pr123-review-analysis-and-responses.md`
+
+#### 6.2: Document Structure
+The review document must include:
+
+1. **Document Header** with metadata (version, date, PR link, reviewer, analysis method)
+2. **Executive Summary** with key findings and reviewer concerns  
+3. **Analysis Methodology** describing steps followed and commands used
+4. **Review Comments and Responses** (co-located Q&A format with embedded follow-up actions - see 6.4)
+5. **Conclusion** summarizing key outcomes and recommendations
+6. **Sources and References** (comprehensive citations - see 6.5)
+
+#### 6.3: Document Target Reference
+**CRITICAL**: When reviewing planning documents, include clear reference to the target document:
+```markdown
+**Target Document:** [filename.md](../relative/path/to/document.md) - Brief description of the document being reviewed.
+**Restructuring Strategy:** [Brief explanation of how the document should be improved]
+```
+
+#### 6.4: Co-located Question, Response, and Follow-up Actions Format
+Each comment section must follow this exact format with embedded numbered follow-up actions:
+
+```markdown
+### [NUMBER]. [Brief Description] - [FILE_PATH:LINE_NUMBER]
+
+**Comment:** ["exact comment text"](https://github.com/[repo]/pull/[PR]#discussion_r[ID])
+
+**Response:**
+
+> [Detailed explanation addressing the concern]
+> 
+> **[Section heading if needed]:**
+> - [Bullet point elaborating on key aspects]
+> - [Additional technical details with citations **[ref]**]
+> - [Implementation considerations]
+> 
+> **Optional doc wording:**
+> "[Suggested documentation text]"
+> 
+> [Concluding statement or summary]
+
+**Follow-up Actions:**
+1. [Specific action item 1 with implementation details]
+2. [Phase-based action with complexity reduction: Phase 1/2+ - Feature: Action (~X% reduction)]  
+3. [Technical validation requirement with citations **[ref]**]
+4. [Integration or verification task]
+```
+
+**CRITICAL FORMAT RULES:**
+- Use `>` blockquotes for ALL response content (NOT code blocks)
+- Always combine comment text and link in single line format
+- **MANDATORY**: Include file path and line number in section header: `[FILE_PATH:LINE_NUMBER]`
+  - Extract from GitHub comment API: use `path` and `line` fields from comment JSON
+  - Example: `multichain-engine/src/ada/rpc.rs:464` for line 464 in the RPC file
+  - Use relative paths from repository root for consistency
+- Include citations **[ref]** for all technical claims
+- Co-locate each question with its response and follow-up actions in the same section
+- **MANDATORY**: Every response section must include a "Follow-up Actions:" sub-section
+- Follow-up actions should be specific, actionable items that can be tracked and assigned in numbered list format
+- Include phase-based actions (Phase 1, Phase 2+) with complexity reduction percentages when applicable
+
+#### 6.5: Sources and References Section
+**MANDATORY**: Include comprehensive sources section with:
+
+**Source Code References Format:**
+- Use relative paths: `[../../../../path/to/file.rs#L42](../../../../path/to/file.rs#L42)`
+- Verify file existence before including
+- Include specific line numbers for key implementations
+- Add brief description of what's at each reference
+
+**Citation Categories:**
+1. **Technical Documentation** (protocols, specifications, CIPs)
+2. **API Documentation** (with specific endpoints)  
+3. **Library References** (with maintenance status)
+4. **Architecture References** (with verified source code links)
+5. **Network Analysis Sources** (with specific data sources)
+6. **Implementation Pattern References** (with verified code locations)
+
+**Citation Format in Text:**
+- Single citation: **[1]**
+- Multiple citations: **[1,2,3]**
+- Cite ALL technical claims, specifications, and implementation details
+
+#### 6.6: Quality Requirements
+- **Complete Coverage**: All reviewer comments addressed, none missed (perform gap analysis)
+- **Professional Tone**: Technical communication following repository standards
+- **Ready-to-Use Responses**: All responses in blockquote format for direct copying
+- **Embedded Follow-up Actions**: Every response section must include specific, actionable follow-up items
+- **Comprehensive Citations**: All technical details properly sourced and referenced
+- **Verified Links**: All source code references tested and working
+- **Permanent Reference**: Document serves as record for future similar PRs
+
+#### 6.7: Verification Steps
+- [ ] All comment IDs from verification step included (gap analysis performed)
+- [ ] Response count matches question-type comment count  
+- [ ] Document includes proper GitHub discussion links
+- [ ] Every response section includes "Follow-up Actions:" sub-section
+- [ ] All source code references verified to exist
+- [ ] All citations properly formatted and numbered
+- [ ] All follow-up actions are specific, actionable, trackable, and in numbered list format with each numbered item on it's own line
+- [ ] All responses follow professional communication standards
+- [ ] Document includes complete analysis methodology for reproducibility
+
+## Response Quality Standards
+
+### Technical Accuracy
+- Verify technical claims and implementation details
+- Reference existing patterns and established practices
+- Consider security, performance, and operational implications
+- Ensure consistency with project architecture
+
+### Clarity and Completeness
+- Define technical terms that may be ambiguous
+- Explain the "why" behind technical decisions
+- Address potential follow-up questions preemptively
+- Provide actionable guidance where appropriate
+
+### Professional Communication
+- Acknowledge valid concerns raised by reviewers
+- Provide constructive explanations for design decisions
+- Offer alternatives when applicable
+- Maintain a collaborative, solution-oriented tone
+
+### Step 7: Follow-up Action Implementation
+After completing the comprehensive review document, proceed to the **Post-Review Implementation Workflow** section below to systematically implement approved follow-up actions with user guidance.
+
+## Example Response Categories
+
+### Clarification Requests
+- Define ambiguous technical terms
+- Explain implementation approaches
+- Clarify design decisions and trade-offs
+
+### Justification Requests
+- Explain technology/library choices
+- Defend architectural decisions
+- Compare alternatives considered
+
+### Implementation Details
+- Specify operational behaviors
+- Define error handling approaches
+- Describe integration patterns
+
+### Documentation Updates
+- Propose clearer wording
+- Add missing context
+- Improve technical explanations
+
+## Output Requirements
+1. **Analysis Summary**: List of applicable comments requiring responses
+2. **Response Collection**: Individual markdown code blocks for each response
+3. **Documentation Updates**: Any suggested text changes for the reviewed document
+4. **Follow-up Items**: Any issues requiring further discussion or investigation
+5. **Comprehensive Review Document**: Complete analysis document created at specified location following structure requirements
+6. **PR Comment Responses**: After implementing approved actions, generate and post response comments to original review threads with user approval
+
+## Post-Review Implementation Workflow
+
+Once the comprehensive review document is complete, initiate the follow-up action implementation process:
+
+### Step 1: Sequential Review Item Processing
+After completing and saving the review document, process each review item individually:
+
+1. **Start with Review Item 1**:
+   - Present the first review item with its title and follow-up actions
+   - Show actions numbered within that item's context (1, 2, 3, etc.)
+   - Example format:
+     ```
+     Review Item 1: Production Build Command Relevance
+     
+     Follow-up Actions:
+     1. Remove production build command from AGENTS.md core build commands section
+     2. Consider adding production build information to deployment-specific documentation if needed
+     3. Maintain focus on development workflow commands most relevant to AI agents
+     
+     Which actions would you like me to implement for this review item? (e.g., '1,3' or 'all' or 'none')
+     ```
+
+2. **Wait for User Input**:
+   - Accept action numbers that correspond to the current review item only
+   - Parse the response (e.g., "1,3" means actions 1 and 3 from THIS item)
+   - **CRITICAL**: Only implement actions explicitly requested by the user
+
+3. **Implement Selected Actions**:
+   - Execute only the actions specified for the current review item
+   - Provide brief confirmation of what was implemented
+   - Format: "✅ [Action description] - Completed"
+
+4. **Continue to Next Review Item**:
+   - Move to Review Item 2, then 3, etc.
+   - Repeat the process for each review item until all items are processed
+   - Each item's actions are numbered independently (1, 2, 3... within that item)
+
+### Step 2: Implementation Guidelines
+- **Selective Implementation**: Never implement actions not explicitly approved by the user
+- **Item-by-Item Processing**: Process review items sequentially, asking for action selection within each item's context
+- **Clear Communication**: Confirm what actions were implemented with review item context
+- **Independent Action Numbering**: Each review item has its own action numbering (1, 2, 3, etc.)
+- **Skip Reporting**: Clearly indicate which review items were skipped (no selected actions)
+- **Comment Response Quality**: Generate professional, concise responses that acknowledge the reviewer's input and clearly communicate what was addressed
+- **PR Update Process**: Only post responses to the PR after explicit user approval
+- **Completion Summary**: Provide summary of all implemented actions and posted responses at the end
+
+### Step 3: Comment Response Formulation and PR Update
+
+After completing all approved implementations, formulate response comments for the original PR review:
+
+1. **Generate Response Comments**:
+   - For each original review comment where actions were implemented, formulate a succinct response
+   - Reference the specific actions that were completed
+   - Use professional, collaborative tone appropriate for PR discussions
+   - Keep responses concise but informative
+
+2. **Present Comments for Review**:
+   - Display each proposed response comment with its corresponding original review comment
+   - Format example:
+     ```
+     Original Comment: "Should it be warn only? This situation should never happen"
+     
+     Proposed Response:
+     "Valid point. Changed to `error!` level logging since invalid hash length represents a protocol violation. This provides visibility for debugging when the condition occurs."
+     
+     Actions Implemented:
+     - ✅ Action 1: Changed log level from warn! to error! for invalid hash length conditions
+     - ✅ Action 2: Added metrics tracking for protocol violations
+     ```
+
+3. **Request User Approval**:
+   - Ask: "Please review the proposed response comments above. Should I proceed to post these responses to the PR? (yes/no/modify)"
+   - If "modify", ask which responses need changes and wait for user guidance
+   - Only proceed with posting if user explicitly approves
+
+4. **Update PR with Responses**:
+   - Use GitHub API to post approved response comments to the original review threads
+   - Command format: `gh api repos/input-output-hk/partner-chains-mcs/pulls/comments/[COMMENT_ID]/replies --method POST --field body="[RESPONSE_TEXT]"`
+   - Confirm successful posting of each response with comment URLs
+   - Provide summary of all responses posted to the PR
+
+### Response Comment Best Practices
+- **Acknowledge First**: Start responses by acknowledging the reviewer's valid point
+- **State Actions Clearly**: Explicitly mention what was implemented or changed
+- **Be Concise**: Keep responses focused and avoid unnecessary elaboration
+- **Factual Communication**: Use precise, technical language that describes what was done
+- **Professional Tone**: Use collaborative language that demonstrates teamwork
+- **Avoid Superlatives**: Do not use words like "excellent", "amazing", "perfect", "terrible"
+- **Avoid Hyperbolic Language**: Skip phrases like "much better", "far superior", "dramatically improved"
+- **Avoid Sycophancy**: Do not use excessive praise or overly deferential language
+- **Reference Implementation**: Link to specific commits or code changes when relevant
+
+### Example Response Templates
+```
+✅ Acknowledgment + Action Template:
+"Valid point. [Specific change made]. This [explains benefit/rationale]."
+
+✅ Question Resolution Template:
+"Correct about [concern]. [Specific action taken] to address this."
+
+✅ Implementation Confirmation Template:
+"Implemented as suggested. [Brief description of change] in [location/commit]."
+
+✅ Technical Explanation Template:
+"[Direct answer to question]. [Implementation details] to resolve this."
+
+✅ Error/Issue Acknowledgment Template:
+"Fixed. [Specific change made] to address the [issue type]."
+```
+
+### User Input Format Examples
+
+**For Each Review Item - Selecting Actions to Implement:**
+- `"1,3"` - Implement actions 1 and 3 from the current review item
+- `"2"` - Implement only action 2 from the current review item
+- `"all"` - Implement all actions from the current review item
+- `"none"` - Skip all actions from the current review item
+
+**Note**: Action numbers are specific to each review item (e.g., Review Item 1 has actions 1,2,3; Review Item 2 has its own actions 1,2,3,4; etc.). Each item's actions are numbered independently.
+
+### Review Document Completeness Checklist
+- [ ] **Comment Verification**: Total comment count confirmed using: `gh api ... | jq '[.] | length'`
+- [ ] **Unresolved Comment Filtering**: Latest review round identified and unresolved comments isolated for analysis
+- [ ] **Focused Scope Confirmed**: Unresolved comment count verified (typically 10-30 vs 40-60 total comments)
+- [ ] **Gap Analysis Performed**: Used systematic detection protocol to find missed unresolved comments
+- [ ] **Coverage Achievement**: 90%+ of unresolved reviewer comments addressed
+- [ ] **Complete Analysis**: All substantive reviewer comments have detailed responses
+- [ ] **Professional Quality**: All responses follow technical communication standards
+- [ ] **Correct Format**: All responses use blockquotes (>) NOT code blocks
+- [ ] **Combined Links**: All comments use format: `**Comment:** ["text"](link)`
+- [ ] **Co-located Q&A**: Questions and responses in same section for readability
+- [ ] **Target Document Referenced**: Clear link to document being reviewed with restructuring strategy
+- [ ] **Follow-up Actions**: Embedded specific phasing and feature changes as actionable items within each response
+- [ ] **Comprehensive Citations**: All technical claims sourced with **[ref]** notation
+- [ ] **Verified Source Links**: All source code references use relative paths and verified to exist
+- [ ] **Sources Section**: Complete with technical docs, APIs, libraries, architecture refs, and implementation patterns
+- [ ] **GitHub Integration**: All GitHub discussion links included and verified
+- [ ] **Permanent Record**: Document serves as reference for future similar PRs
+
+## Notes
+- **Response Format**: Responses must use `>` blockquotes for italic presentation (NOT code blocks)
+- **Link Format**: Always combine comment text and link: `**Comment:** ["text"](link)`  
+- **Citation Requirements**: All technical claims must include **[ref]** citations
+- **Source Code Links**: Use relative paths with line numbers: `../../../../file.rs#L42`
+- **Unresolved Comment Focus**: Filter to latest review round to avoid analyzing already-resolved comments
+- **Gap Analysis**: Perform systematic detection within unresolved comment scope  
+- **Coverage Target**: Aim for 90%+ coverage of unresolved comments (typically 10-30 sections for focused analysis)
+- **Follow-up Format**: Embed specific phasing and feature changes as numbered actionable items within each response
+- **Target Documentation**: Always reference the document being reviewed with clear links
+- **Professional Tone**: Maintain consistency with existing project documentation style
+- **Reviewer Focus**: Consider the reviewer's perspective and expertise level
+- **Quality Goal**: Focus on improving overall clarity of project documentation
+- **Verification**: Test all source code links and verify file existence before including
+
+## Critical Success Factors
+
+### Unresolved Comment Focus Strategy
+**LESSON LEARNED**: Analyzing all PR comments (including resolved ones) creates redundant work and reduces analysis efficiency. 
+
+**Unresolved Comment Methodology**:
+1. **Identify Latest Review Round**: Use `gh pr view --json reviews` to find most recent review submission date
+2. **Date-Based Filtering**: Filter comments to `updated_at >= [LATEST_REVIEW_DATE]` to isolate unresolved items
+3. **Scope Validation**: Verify unresolved comment count (typically 10-30 vs 40-60 total comments)  
+4. **Focused Analysis**: Apply all subsequent analysis steps to unresolved comment subset only
+5. **Efficiency Gains**: 50-70% reduction in analysis scope while maintaining complete coverage of active concerns
+
+### Comment Capture Completeness
+**LESSON LEARNED**: Initial analyses may miss specific technical questions embedded within longer reviews.
+
+**Prevention Strategy**:
+1. Always verify total comment count against captured comments  
+2. **Apply unresolved filtering before analysis**: Focus scope on active review concerns
+3. Use grep/search to identify question-type comments from unresolved set specifically  
+4. Cross-reference GitHub comment IDs to ensure none are skipped from filtered set
+5. Save unresolved comments to temporary files for comprehensive analysis
+6. Create supplementary analysis sections for any missed items within unresolved scope
+
+### Gap Analysis Methodology
+**LESSON LEARNED**: PR43 initially missed 28 out of 45 comments despite successful API retrieval. Analysis completeness is separate from data retrieval success.
+
+**Systematic Gap Detection Protocol**:
+1. **Extract Current Coverage**: `grep -o "r[0-9]\{10\}" [review_doc] | sort > current_ids.txt`
+2. **Compare Against API**: `cat /tmp/all_comments.json | jq -r '.id' | sort > all_ids.txt`  
+3. **Find Missing IDs**: `comm -23 all_ids.txt current_ids.txt`
+4. **Analyze Missing Content**: `cat /tmp/all_comments.json | jq 'select(.id == [MISSING_ID])'`
+5. **Categorize Missing Items**: Editorial suggestions vs substantive questions vs scope concerns
+6. **Add Missing Responses**: Update review document with additional sections for all substantive items
+7. **Verify Final Coverage**: Final document should address 80%+ of reviewer comments for comprehensive PRs
+
+**Missing Comment Analysis Criteria**:
+- **ALWAYS Include**: Direct questions ("What?", "Why?", "How?", "Which?")
+- **ALWAYS Include**: Technical concerns ("I don't think...", "Can we...?", "Won't we...?")
+- **ALWAYS Include**: Scope feedback ("I'd remove...", "We only need...", "This is not needed...")
+- **EXCLUDE**: Pure editorial suggestions (```suggestion blocks without accompanying questions)
+- **INCLUDE**: Comments requesting removal/deferral WITH substantive reasoning
+- **INCLUDE**: Clarification requests about implementation details
+
+**Coverage Expectations (Updated for Unresolved Comment Focus)**:
+- **Unresolved Comment Analysis**: 10-30 response sections typical for focused unresolved comment analysis
+- **Full PR Analysis**: 40-60 total comments may exist, but only 20-50% are typically unresolved in latest review round
+- **Efficiency Focus**: Target 90%+ coverage of unresolved comments rather than exhaustive analysis of resolved items
+- **Gap Analysis**: Critical for achieving complete coverage within unresolved comment scope
+- **Final Verification**: Cross-check response sections against unresolved comment count and patterns
+
+### Quality Assurance
+- GitHub API commands work correctly - issue is usually incomplete analysis, not missing data
+- **Apply unresolved comment filtering first**: Use date-based filtering to focus on active review concerns  
+- Prioritize question-type comments requiring specific technical responses from unresolved set
+- Verify all comment IDs mentioned in analysis exist in GitHub and are from unresolved comment scope
+- Ensure review document includes ALL substantive unresolved reviewer concerns (typically 10-30 sections for focused analysis)
+- Test random sample of GitHub discussion links to confirm accuracy
+- Perform gap analysis within unresolved comment scope if initial review seems incomplete compared to filtered comment count

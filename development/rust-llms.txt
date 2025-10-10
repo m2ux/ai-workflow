@@ -1,0 +1,109 @@
+# Idiomatic Rust
+
+> A curated collection of resources for writing concise, elegant, and idiomatic Rust code. This collection focuses on best practices, design patterns, and community-endorsed approaches to Rust programming.
+
+This collection emphasizes practical, peer-reviewed resources that teach idiomatic Rust style and patterns. The resources are organized by type and complexity, from foundational concepts to advanced techniques. All links point to articles, books, talks, and repositories that demonstrate proper Rust idioms and best practices.
+
+## Core Learning Resources
+
+- [The Rust Programming Language Book](https://doc.rust-lang.org/book/): The official Rust book, comprehensive guide to Rust fundamentals
+- [Rust by Example](https://doc.rust-lang.org/rust-by-example/): Learn Rust with practical examples and exercises
+- [The Rustonomicon](https://doc.rust-lang.org/nomicon/): Advanced guide to unsafe Rust and low-level programming
+- [Rust Design Patterns](https://rust-unofficial.github.io/patterns/): Official collection of Rust idioms, design patterns, and anti-patterns
+- [API Guidelines](https://rust-lang.github.io/api-guidelines/): Official Rust API design guidelines for library authors
+- [cheats.rs - Idiomatic Rust tips](https://cheats.rs/): Quick reference for Rust syntax and idiomatic patterns
+- [blessed.rs](https://blessed.rs/): An unofficial guide to the Rust ecosystem with suggestions for popular, well-maintained crates
+- [clippy](https://github.com/rust-lang/rust-clippy): A collection of lints to catch common mistakes and improve your Rust code
+- [Elements of Rust](https://github.com/ferrous-systems/elements-of-rust): A collection of software engineering techniques for effectively expressing intent with Rust
+
+## Articles and Guides
+
+- [Aim For Immutability in Rust](https://web.archive.org/web/20230207162048/https://blog.logrocket.com/rust-immutability-ownership/): Explains why variables are immutable in Rust by default
+- [Compile-Time Invariants in Rust](https://web.archive.org/web/20230207162048/https://blog.logrocket.com/rust-compile-time-invariants/): Shows how macros can be used to enforce invariants at compile-time
+- [Rust Number Conversion: Don't Follow the Book...](https://deterministic.space/rust-number-conversion-dont-follow-the-book.html): A blog post discussing the best practices for number conversion in Rust
+- [Hexagonal architecture in Rust](https://alexis-lozano.com/hexagonal-architecture-in-rust-1/): Describes how to build a Rust service using domain driven design and a test-first approach
+- [Wrapping errors in Rust](https://edgarluque.com/blog/wrapping-errors-in-rust/): Wrapping 'reqwest::Error' and a custom error type as an enum to make library usage easier
+- [Aiming for idiomatic Rust](https://shane-o.dev/blog/aiming-for-idiomatic-rust): Discusses different ways to solve a popular coding puzzle, 'balanced brackets', in Rust
+- [Naming Your Lifetimes](https://www.possiblerust.com/guide/naming-your-lifetimes): Explains how using longer, declarative lifetime names can help to disambiguate which borrow is which
+- [Are out parameters idiomatic in Rust?](https://steveklabnik.com/writing/are-out-parameters-idiomatic-in-rust): Discusses the pros and cons of functions returning a value vs. modifying a parameter in-place
+- [Guide on how to write documentation for a Rust crate](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate): Writing good documentation with rustdoc including many examples
+- [Learning Rust through open source and live code reviews](https://www.youtube.com/watch?v=a6Ka7cd0bcU): Covers patterns like 'FromStr' and exposing a CLI and a library in one crate
+- [Refactoring Rust Transpiled from C](https://immunant.com/blog/2020/01/c2rust-transpile-fixes/): Describes how to lift a C-project that was automatically converted to unsafe Rust to safer, more idiomatic Rust
+- [Context-preserving error handling](https://nick.groenen.me/posts/rust-error-handling/): Explains how to use crates like 'thiserror' in combination with 'map_err' to add context to errors
+- [Await a minute](https://zackoverflow.dev/writing/async-await-a-minute/): Example code for moving from raw futures to async/await syntax to improve error handling
+- [Taking string arguments in Rust](https://fasterthanli.me/articles/working-with-strings-in-rust): Discussing how to avoid subtle issues with string handling and when to use 'str' vs 'String'
+- [Rust Patterns: Enums Instead Of Booleans](https://blakesmith.me/2019/05/07/rust-patterns-enums-instead-of-booleans.html): Discusses how using enums instead of booleans can express intent more clearly in Rust
+- [Programming an ARM microcontroller in Rust at four different levels of abstraction](https://pramode.in/2018/02/20/programming-a-microcontroller-in-rust-at-four-levels-of-abstraction/): Demonstrates how Rust helps to move from low-level embedded code to high-level abstractions
+- [The balance between cost, useability and soundness in C bindings, and Rust-SDL2's release](https://blog.rust-lang.org/2017/06/27/Increasing-Rusts-Reach.html): Writing safe, sound, idiomatic libraries despite the limitations of the borrow checker
+- [Math with distances in Rust: safety and correctness across units](https://www.reddit.com/r/rust/comments/6lqgz6/math_with_distances_in_rust_safety_and/): How to create a system to cleanly and safely do arithmetic with lengths
+- [Lessons learned redesigning and refactoring a Rust Library](https://mgattozzi.com/refactor-rust): 'RefCell', the builder pattern and more
+- [Iteration patterns for Result & Option](https://blog.burntsushi.net/rust-error-handling/): Explores how to filter and partition iterators of Result and Option types idiomatically
+- [Idiomatic tree and graph like structures in Rust](https://rust-unofficial.github.io/too-many-lists/): Introduction to safe, dynamic, arena based tree structures without using lifetimes
+- [Convenient and idiomatic conversions in Rust](https://ricardomartins.cc/2016/08/03/convenient_and_idiomatic_conversions_in_rust): Explains 'From', 'Into', 'TryFrom', 'TryInto', 'AsRef' and 'AsMut' with practical examples
+- [Rustic Bits](https://llogiq.github.io/2016/02/11/rustic.html): Small things that make for rustic code
+- [Ripgrep Code Review](https://blog.burntsushi.net/ripgrep/): An analysis of the popular 'ripgrep' tool's source code
+- [Pretty State Machine Patterns in Rust](https://hoverbear.org/blog/rust-state-machine-pattern/): How to represent a State Machine in an expressive and understandable way in Rust
+- [Teaching libraries through good documentation](https://deterministic.space/teaching-libraries.html): How to use the full power of Rust's documentation support (e.g. doc tests)
+- [Elegant Library APIs in Rust](https://deterministic.space/elegant-apis-in-rust.html): Many helpful tips and tricks for writing libraries in Rust
+- [Russian Dolls and clean Rust code](https://mgattozzi.com/russian-dolls): How to use the full power of 'Option' and 'Result' (especially 'and_then()' and 'unwrap_or()')
+- [Rayon: data parallelism in Rust](https://blog.rayon-rs.github.io/): Writing elegant parallel code in Rust
+- [Strategies for solving 'cannot move out of' borrowing errors in Rust](https://hermanradtke.com/2015/06/22/strategies-for-solving-cannot-move-out-of-borrowing-errors-in-rust.html): Practical tips to help understand the borrow-checker and move semantics
+- [Effectively Using Iterators In Rust](https://hermanradtke.com/2015/06/22/effectively-using-iterators-in-rust.html): Explanation of the 'Iter' and 'IntoIter' traits and how loops actually work in Rust
+- [Creating a Rust function that returns a &str or String](https://hermanradtke.com/2015/05/06/creating-a-rust-function-that-returns-string-or-str.html): How 'Into' and 'Cow' (Clone-on-write) work together to avoid allocations for string types
+- [Creating a Rust function that accepts String or &str](https://hermanradtke.com/2015/05/29/creating-a-rust-function-that-accepts-string-or-str.html): How to make calling your code both ergonomic and fast (zero-allocation)
+- [String vs str in Rust functions](https://hermanradtke.com/2015/05/03/string-vs-str-in-rust-functions.html): Understanding string types and when to use each
+- [Error Handling in Rust](https://blog.burntsushi.net/rust-error-handling/): Understanding and handling errors in Rust in an idiomatic way
+- [Rust traits for developer friendly libraries](https://benashford.github.io/blog/2015/05/24/rust-traits-for-developer-friendly-libraries/): Thoughts about implementing good Rust libraries
+
+## Workshops and Interactive Learning
+
+- [Build your own JIRA with Rust](https://github.com/LukeMathWalker/build-your-own-jira-with-rust): A test-driven workshop to learn Rust by building your own JIRA clone
+- [Comprehensive Rust](https://google.github.io/comprehensive-rust/): A four day Rust course developed by the Android team, covering all aspects of Rust
+- [Ferrous Systems Teaching Material](https://ferrous-systems.github.io/teaching-material/): Free workshop material produced by Ferrous Systems for trainings
+- [Hecto: Build your own text editor in Rust](https://www.flenker.blog/hecto/): A series of blog posts that shows you how to build a text editor in Rust
+- [Idiomatic Rust Workshop](https://github.com/dtolnay/rust-quiz): A talk/workshop about idiomatic Rust code focusing on effective use of existing syntax and design patterns
+- [PingCAP talent plan](https://github.com/pingcap/talent-plan): A series of training courses about writing distributed systems in Rust
+- [Procedural Macros Workshop](https://github.com/dtolnay/proc-macro-workshop): A selection of projects designed to learn to write Rust procedural macros
+- [Rust 101](https://tweedegolf.github.io/rust-101/): A Rust University course by tweede golf
+- [Rust Development at Sentry](https://getsentry.github.io/rust-at-sentry/): A document containing useful resources for getting started with Rust and adhering to Sentry coding principles
+- [rust-lang/rustlings](https://github.com/rust-lang/rustlings): Small exercises to get you used to reading and writing Rust code
+
+## Code Examples and Repositories
+
+- [Rust Anthology](https://github.com/brson/rust-anthology): Collection of excellent Rust blog posts and articles
+- [Possible Rust](https://www.possiblerust.com/): A blog for intermediate Rust programmers exploring real-world code and design patterns
+- [Awesome Rust](https://github.com/rust-unofficial/awesome-rust): Comprehensive list of Rust libraries and resources
+- [Rust Patterns](https://github.com/rust-unofficial/patterns): Repository of Rust design patterns with examples
+- [Learning Rust With Entirely Too Many Linked Lists](https://rust-unofficial.github.io/too-many-lists/): Tutorial series on implementing data structures
+- [Little Book of Rust Books](https://lborb.github.io/book/): Directory of Rust learning resources and books
+
+## Community Discussions
+
+- [Preferred way of passing Path-like types around?](https://users.rust-lang.org/t/preferred-way-of-passing-path-like-types-around/10506): Best practices for path handling
+- [An idiomatic way to sum up values in a multidimensional Array](https://users.rust-lang.org/t/an-idiomatic-way-to-sum-up-values-in-a-multidimensional-array/10726): Functional vs imperative approaches
+- [Which is more idiomatic? Functional, imperative or a mix?](https://users.rust-lang.org/t/which-is-more-idiomatic-functional-imperative-or-a-mix/11278): Style discussions and trade-offs
+
+## Books and In-Depth Guides
+
+- [Programming Rust: Fast, Safe Systems Development](https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/): A comprehensive Rust Programming Guide that covers most of Rust's features in detail
+- [Rust for Rustaceans](https://nostarch.com/rust-rustaceans): Covers how to design reliable, idiomatic, and ergonomic Rust programs based on best principles
+- [Command Line Applications in Rust](https://rust-cli.github.io/book/): A tutorial on how to write CLI apps in Rust, learning many aspects of the ecosystem
+- [Command-Line Rust](https://www.oreilly.com/library/view/command-line-rust/9781098109424/): Learn the language by writing Rust versions of common Unix coreutils
+- [Zero To Production In Rust](https://www.zero2prod.com/): Building production-ready web applications
+- [Rust Cookbook](https://rust-lang-nursery.github.io/rust-cookbook/): Examples that demonstrate good practices to accomplish common programming tasks in Rust
+- [Rust Atomics and Locks](https://marabos.nl/atomics/): Helps Rust programmers of all levels gain a clear understanding of low-level concurrency
+- [High Assurance Rust](https://highassurance.rs/): Developing secure and robust software, focusing on embedded-friendly data structures in Rust
+- [Discover the world of microcontrollers through Rust!](https://docs.rust-embedded.org/discovery/): An introductory course on microcontroller-based embedded systems using Rust
+
+## Advanced Topics
+
+- [The Little Book of Rust Macros](https://veykril.github.io/tlborm/): Comprehensive guide to Rust macros
+- [Rust Performance Book](https://nnethercote.github.io/perf-book/): Guide to writing fast Rust code
+
+## Optional
+
+- [Rust Standard Library Documentation](https://doc.rust-lang.org/std/): Complete standard library reference
+- [The Cargo Book](https://doc.rust-lang.org/cargo/): Guide to Rust's package manager and build system
+- [Rust Edition Guide](https://doc.rust-lang.org/edition-guide/): Understanding Rust editions and migration
+- [Rust Compiler Error Index](https://doc.rust-lang.org/error-index.html): Detailed explanations of compiler errors
+- [This Week in Rust](https://this-week-in-rust.org/): Weekly newsletter covering Rust news and updates

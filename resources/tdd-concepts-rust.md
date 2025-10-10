@@ -112,7 +112,7 @@ fn get_led_state(led: u8) -> bool {
 
 ## Test Harnesses and Frameworks
 
-**Summary**: Test harnesses provide the essential infrastructure for automated testing in TDD. A test harness is a software package that allows programmers to express how production code should behave. 
+**Summary**: Test harnesses provide the essential infrastructure for automated testing in TDD. A test harness is a software package that allows programmers to express how production code should behave.
 
 ### Unity Test Framework
 
@@ -2471,7 +2471,7 @@ proptest! {
   
         for value in values {
             let _ = buffer.put(value);  // May fail when full
-      
+  
             // Invariant: count never exceeds capacity
             prop_assert!(buffer.count() <= capacity);
         }
@@ -2659,9 +2659,3 @@ pub fn calculate_total(items: &[Item]) -> f64 {
 | Preprocessor      | `#ifdef TEST`             | `#[cfg(test)]` or features        |
 | Link Substitution | Linker flags              | Trait objects or`#[cfg]`          |
 | Test Runner       | Custom main               | `cargo test`                      |
-
----
-
-**End of Lexicon**
-
-This lexicon provides a comprehensive guide to TDD concepts with Rust implementations, based on principles from "Test Driven Development for Embedded C" and adapted for modern Rust practices.

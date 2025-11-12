@@ -16,23 +16,23 @@ This prompt helps analyze review comments from a GitHub Pull Request and craft t
 #### 1.1: Retrieve All PR Comments
 Use the following command to retrieve all review comments for the specified PR:
 ```bash
-gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate
+gh api repos/[REPO_OWNER]/[REPO_NAME]/pulls/[PR_NUMBER]/comments --paginate
 ```
 
-Replace `[PR_NUMBER]` with the actual PR number provided by the user.
+Replace `[REPO_OWNER]/[REPO_NAME]` with your repository (e.g., `myorg/myrepo`) and `[PR_NUMBER]` with the actual PR number provided by the user.
 
 #### 1.2: Verify Complete Comment Capture
 **CRITICAL**: Ensure no comments are missed by performing verification:
 
 ```bash
 # Get total comment count
-gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '. | length'
+gh api repos/[REPO_OWNER]/[REPO_NAME]/pulls/[PR_NUMBER]/comments --paginate | jq '. | length'
 
 # Get all reviewer comments (excluding PR author) with file context
-gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]") | {id: .id, body: .body, html_url: .html_url, path: .path, line: .line}'
+gh api repos/[REPO_OWNER]/[REPO_NAME]/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]") | {id: .id, body: .body, html_url: .html_url, path: .path, line: .line}'
 
 # Save all comments for comprehensive analysis
-gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]")' > /tmp/all_reviewer_comments.json
+gh api repos/[REPO_OWNER]/[REPO_NAME]/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]")' > /tmp/all_reviewer_comments.json
 ```
 
 #### 1.2.5: Filter to Unresolved Comments Only
@@ -43,7 +43,7 @@ gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --pag
 gh pr view [PR_NUMBER] --json reviews | jq '.reviews[] | {author: .author.login, state: .state, submittedAt: .submittedAt}' | tail -5
 
 # Filter to comments from latest review round (adjust date based on latest review)
-gh api repos/input-output-hk/partner-chains-mcs/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]" and .updated_at >= "[LATEST_REVIEW_DATE]") | {id: .id, body: .body, html_url: .html_url, path: .path, line: .line, created_at: .created_at, updated_at: .updated_at}' > /tmp/unresolved_comments.json
+gh api repos/[REPO_OWNER]/[REPO_NAME]/pulls/[PR_NUMBER]/comments --paginate | jq '.[] | select(.user.login != "[PR_AUTHOR]" and .updated_at >= "[LATEST_REVIEW_DATE]") | {id: .id, body: .body, html_url: .html_url, path: .path, line: .line, created_at: .created_at, updated_at: .updated_at}' > /tmp/unresolved_comments.json
 
 # Verify unresolved comment count
 cat /tmp/unresolved_comments.json | jq -s '. | length'
@@ -99,7 +99,7 @@ Generate a numbered list of applicable review comments that still need responses
 
 Format example:
 ```
-1. Clarify "graceful degradation" under Operational Requirements — what behavior is expected when Chain Sync is unavailable - docs/features/cardano-integration.md:45 [Discussion link](https://github.com/input-output-hk/partner-chains-mcs/pull/43#discussion_r2288831775)
+1. Clarify "graceful degradation" under Operational Requirements — what behavior is expected when Chain Sync is unavailable - docs/features/cardano-integration.md:45 [Discussion link](https://github.com/[REPO_OWNER]/[REPO_NAME]/pull/43#discussion_r2288831775)
 ```
 
 ### Step 4: Craft Thoughtful Responses
@@ -405,7 +405,7 @@ After completing all approved implementations, formulate response comments for t
 
 4. **Update PR with Responses**:
    - Use GitHub API to post approved response comments to the original review threads
-   - Command format: `gh api repos/input-output-hk/partner-chains-mcs/pulls/comments/[COMMENT_ID]/replies --method POST --field body="[RESPONSE_TEXT]"`
+   - Command format: `gh api repos/[REPO_OWNER]/[REPO_NAME]/pulls/comments/[COMMENT_ID]/replies --method POST --field body="[RESPONSE_TEXT]"`
    - Confirm successful posting of each response with comment URLs
    - Provide summary of all responses posted to the PR
 

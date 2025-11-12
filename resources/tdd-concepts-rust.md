@@ -1,29 +1,28 @@
 # Test-Driven Development for Rust
 
-Comprehensive lexicon of TDD concepts from "Test Driven Development for Embedded C" with direct translations to Rust idioms and practices. The concepts described are adapted from embedded C contexts, and occasional C/C++ specific references may persist where they provide valuable historical or conceptual context.
+Comprehensive lexicon of TDD concepts from ["Test Driven Development for Embedded C" by James W. Grenning](https://www.amazon.com/Driven-Development-Embedded-Pragmatic-Programmers/dp/193435662X) with direct translations to Rust idioms and practices. The concepts described are adapted from embedded C contexts, and occasional C/C++ specific references may persist where they provide valuable historical or conceptual context.
 
 ---
 
 ## Table of Contents
 
 1. [Core TDD Concepts](#core-tdd-concepts)
-2. [Test Harnesses and Frameworks](#test-harnesses-and-frameworks)
-3. [Test Structure and Organization](#test-structure-and-organization)
-4. [Test Doubles](#test-doubles)
-5. [Breaking Dependencies](#breaking-dependencies)
-6. [TDD Workflow and State Machine](#tdd-workflow-and-state-machine)
-7. [Test Quality Principles](#test-quality-principles)
-8. [Examples and Patterns](#examples-and-patterns)
-9. [Applying TDD to Existing Code](#applying-tdd-to-existing-code)
-10. [Test Patterns and Anti-Patterns](#test-patterns-and-anti-patterns)
-11. [Refactoring](#refactoring)
-12. [Hardware Abstraction Layer (HAL)](#hardware-abstraction-layer-hal)
-13. [Continuous Integration (CI)](#continuous-integration-ci)
-14. [Test Execution Modes](#test-execution-modes)
-15. [Design for Testability](#design-for-testability)
-16. [Benefits of TDD](#benefits-of-tdd)
-17. [Property-Based Testing](#property-based-testing)
-18. [Conclusion and Best Practices](#conclusion-and-best-practices)
+2. [Test Structure and Organization](#test-structure-and-organization)
+3. [Test Doubles](#test-doubles)
+4. [Breaking Dependencies](#breaking-dependencies)
+5. [TDD Workflow and State Machine](#tdd-workflow-and-state-machine)
+6. [Test Quality Principles](#test-quality-principles)
+7. [Examples and Patterns](#examples-and-patterns)
+8. [Applying TDD to Existing Code](#applying-tdd-to-existing-code)
+9. [Test Patterns and Anti-Patterns](#test-patterns-and-anti-patterns)
+10. [Refactoring](#refactoring)
+11. [Hardware Abstraction Layer (HAL)](#hardware-abstraction-layer-hal)
+12. [Continuous Integration (CI)](#continuous-integration-ci)
+13. [Test Execution Modes](#test-execution-modes)
+14. [Design for Testability](#design-for-testability)
+15. [Benefits of TDD](#benefits-of-tdd)
+16. [Property-Based Testing](#property-based-testing)
+17. [Conclusion and Best Practices](#conclusion-and-best-practices)
 
 ---
 

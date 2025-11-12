@@ -93,13 +93,13 @@ Generate a numbered list of applicable review comments that still need responses
 - Link to the original GitHub discussion
 
 **File Context Requirements:**
-- Use relative paths from repository root (e.g., `multichain-engine/src/ada/rpc.rs` not absolute paths)
+- Use relative paths from repository root (e.g., `src/core/handler.rs` not absolute paths)
 - Include line number where the comment was made (e.g., `:464` for line 464)
 - This provides immediate context for locating the specific code being discussed
 
 Format example:
 ```
-1. Clarify "graceful degradation" under Operational Requirements — what behavior is expected when Chain Sync is unavailable - docs/features/cardano-integration.md:45 [Discussion link](https://github.com/[REPO_OWNER]/[REPO_NAME]/pull/43#discussion_r2288831775)
+1. Clarify error handling behavior under fault conditions — what happens when service is unavailable - docs/features/service-integration.md:45 [Discussion link](https://github.com/[REPO_OWNER]/[REPO_NAME]/pull/123#discussion_r1234567890)
 ```
 
 ### Step 4: Craft Thoughtful Responses
@@ -148,7 +148,7 @@ Use this format for each response section:
 > [Concluding statement or summary]
 ```
 
-**Critical Format Requirements (Updated from PR43 Experience):**
+**Critical Format Requirements:**
 - Use `>` blockquotes for ALL response content (creates italic formatting)
 - Never use markdown code blocks (` ```markdown `) for responses
 - Always combine comment text and link in single line: `**Comment:** ["text"](link)`
@@ -170,8 +170,8 @@ Create the review document at:
 ```
 
 **Examples:**
-- For Cardano integration: `.ai/reviews/cardano-integration/2025-08-27-pr43-review-analysis-and-responses.md`
-- For general features: `.ai/reviews/2025-08-27-pr123-review-analysis-and-responses.md`
+- For feature-specific reviews: `.ai/reviews/[feature-name]/[YYYY-MM-DD]-pr[PR_NUMBER]-review-analysis-and-responses.md`
+- For general features: `.ai/reviews/[YYYY-MM-DD]-pr[PR_NUMBER]-review-analysis-and-responses.md`
 
 #### 6.2: Document Structure
 The review document must include:
@@ -224,7 +224,7 @@ Each comment section must follow this exact format with embedded numbered follow
 - Always combine comment text and link in single line format
 - **MANDATORY**: Include file path and line number in section header: `[FILE_PATH:LINE_NUMBER]`
   - Extract from GitHub comment API: use `path` and `line` fields from comment JSON
-  - Example: `multichain-engine/src/ada/rpc.rs:464` for line 464 in the RPC file
+  - Example: `src/services/handler.rs:464` for line 464 in a handler file
   - Use relative paths from repository root for consistency
 - Include citations **[ref]** for all technical claims
 - Co-locate each question with its response and follow-up actions in the same section
@@ -339,12 +339,12 @@ After completing and saving the review document, process each review item indivi
    - Show actions numbered within that item's context (1, 2, 3, etc.)
    - Example format:
      ```
-     Review Item 1: Production Build Command Relevance
+     Review Item 1: API Documentation Clarity
      
      Follow-up Actions:
-     1. Remove production build command from AGENTS.md core build commands section
-     2. Consider adding production build information to deployment-specific documentation if needed
-     3. Maintain focus on development workflow commands most relevant to AI agents
+     1. Add detailed parameter descriptions to the API endpoint documentation
+     2. Include example request/response payloads for common use cases
+     3. Add error code reference table with resolution steps
      
      Which actions would you like me to implement for this review item? (e.g., '1,3' or 'all' or 'none')
      ```
@@ -506,7 +506,7 @@ After completing all approved implementations, formulate response comments for t
 6. Create supplementary analysis sections for any missed items within unresolved scope
 
 ### Gap Analysis Methodology
-**LESSON LEARNED**: PR43 initially missed 28 out of 45 comments despite successful API retrieval. Analysis completeness is separate from data retrieval success.
+**LESSON LEARNED**: Initial analyses may miss a significant portion of comments despite successful API retrieval. Analysis completeness is separate from data retrieval success.
 
 **Systematic Gap Detection Protocol**:
 1. **Extract Current Coverage**: `grep -o "r[0-9]\{10\}" [review_doc] | sort > current_ids.txt`

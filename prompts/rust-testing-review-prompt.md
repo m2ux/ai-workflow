@@ -536,17 +536,17 @@ async fn test_get_transaction_success() {
 
 // Pattern 9: Mock data retrieval + manual business logic implementation
 #[test]
-async fn test_utxo_minimum_validation() { // <- Claims to test client validation
+async fn test_balance_minimum_validation() { // <- Claims to test client validation
     let mock_client = MockRpcClient::new();
     let protocol_params = mock_client.get_protocol_parameters().await.expect("Should get params");
     
     // Manual creation and calculation in test - NOT testing client validation methods
-    let utxo = TestUtxo::new(address, amount); // <- Manual test data creation
-    let calculated_min = (utxo_size + 160) * protocol_params.coefficient; // <- Business logic in test
-    assert!(utxo.amount >= calculated_min); // <- Testing manual calculation, not client enforcement
+    let account = TestAccount::new(address, balance); // <- Manual test data creation
+    let calculated_min = (account_size + 160) * protocol_params.coefficient; // <- Business logic in test
+    assert!(account.balance >= calculated_min); // <- Testing manual calculation, not client enforcement
     
     // MISSING: No actual client validation method calls like:
-    // let validation_result = mock_client.validate_utxo(&utxo).await;
+    // let validation_result = mock_client.validate_account(&account).await;
     // assert!(validation_result.is_ok());
 }
 
@@ -569,22 +569,22 @@ async fn test_functionality_validation() { // <- Claims to validate functionalit
 **High-Value Test Patterns to Encourage:**
 ```rust
 // ✅ Clean test header format with concise description
-/// Client validates minimum UTXO requirements against Cardano protocol.
+/// Client validates minimum balance requirements against protocol rules.
 ///
-/// This test validates the client's ability to enforce minimum ADA requirements
-/// for UTXOs according to Cardano network protocol specifications.
+/// This test validates the client's ability to enforce minimum balance requirements
+/// according to network protocol specifications.
 #[tokio::test]
-async fn test_utxo_minimum_ada_validation() {
+async fn test_balance_minimum_validation() {
     // Test implementation with actual business logic validation
 }
 
 // ✅ Protocol compliance testing  
 #[test]
-fn test_min_ada_requirement_against_cardano_protocol() {
-    // Tests actual Cardano protocol calculation: minUTxO = (160 + size) * coinsPerUTxOByte
-    let calculated = processor.calculate_min_ada(utxo_size);
-    let expected = (160 + utxo_size) * 4310; // Real protocol parameter
-    assert_eq!(calculated, expected, "Should follow Cardano protocol");
+fn test_minimum_balance_against_protocol() {
+    // Tests actual protocol calculation based on size and parameters
+    let calculated = processor.calculate_minimum_balance(account_size);
+    let expected = (160 + account_size) * 4310; // Protocol parameter
+    assert_eq!(calculated, expected, "Should follow protocol specification");
 }
 
 // ✅ Business rule enforcement  
@@ -619,19 +619,19 @@ async fn test_complete_protocol_state_flow() {
 #[test]
 async fn test_transaction_conversion_logic() {
     // Create mock external data (simulating third-party API response)
-    let chain_sync_transaction = ChainSyncTx {
+    let external_transaction = ExternalTx {
         hash: "4242...".to_string(),
         body: TransactionBody { inputs: vec![...], outputs: vec![...] },
     };
     
     // Test real client conversion logic (not mock behavior)
-    let converted_transaction = RpcClient::convert_chain_sync_transaction(chain_sync_transaction)
+    let converted_transaction = RpcClient::convert_external_transaction(external_transaction)
         .expect("Should successfully convert");
     
     // Validate real business logic: data transformation, validation, format conversion
     let expected_hash = hex::decode("4242...").unwrap();
     assert_eq!(converted_transaction.hash, expected_hash); // Tests real conversion logic
-    assert!(converted_transaction.amount >= MIN_UTXO_VALUE); // Tests real business rule validation
+    assert!(converted_transaction.amount >= MIN_BALANCE_VALUE); // Tests real business rule validation
 }
 
 // ✅ Transform constructor validation into business rule testing
@@ -661,26 +661,26 @@ async fn test_replaced_mock_passthrough() {
 #[test]
 async fn test_replaced_manual_validation_logic() {
     // BEFORE (low-value): Manual calculation in test claiming to validate client
-    // let calculated_min = (utxo_size + 160) * coefficient; assert!(amount >= calculated_min);
+    // let calculated_min = (account_size + 160) * coefficient; assert!(balance >= calculated_min);
     
     // AFTER (high-value): Test actual client validation methods with real business scenarios
     let real_client = RpcClient::new();
     let protocol_params = real_client.get_protocol_parameters().await.expect("Should get params");
     
     // Test actual client validation method (not manual calculation)
-    let valid_utxo = create_valid_utxo(2_000_000); // 2 ADA
-    let validation_result = real_client.validate_utxo_for_transaction(&valid_utxo).await;
-    assert!(validation_result.is_ok(), "Valid UTXO should pass client validation");
+    let valid_account = create_valid_account(2_000_000); // 2 tokens
+    let validation_result = real_client.validate_account_for_transaction(&valid_account).await;
+    assert!(validation_result.is_ok(), "Valid account should pass client validation");
     
-    let insufficient_utxo = create_utxo(500_000); // 0.5 ADA - likely insufficient
-    let invalid_result = real_client.validate_utxo_for_transaction(&insufficient_utxo).await;
-    assert!(invalid_result.is_err(), "Insufficient UTXO should fail client validation");
+    let insufficient_account = create_account(500_000); // 0.5 tokens - likely insufficient
+    let invalid_result = real_client.validate_account_for_transaction(&insufficient_account).await;
+    assert!(invalid_result.is_err(), "Insufficient balance should fail client validation");
     
     // Verify the client returns appropriate error types
-    if let Err(ValidationError::InsufficientMinAda { required, actual }) = invalid_result {
+    if let Err(ValidationError::InsufficientBalance { required, actual }) = invalid_result {
         assert!(actual < required, "Error should include correct amounts");
     } else {
-        panic!("Should return InsufficientMinAda error");
+        panic!("Should return InsufficientBalance error");
     }
 }
 ```

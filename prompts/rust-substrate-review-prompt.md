@@ -378,7 +378,7 @@ After implementing all numbered recommendations, provide:
 ## Usage Instructions
 
 ### Template Deployment:
-1. Replace `{TARGET_PATH}` on line 2 with the target module path (e.g., `multichain-engine/src/ada`)
+1. Replace `{TARGET_PATH}` on line 2 with the target module path (e.g., `pallets/your-pallet/src`)
 2. Deploy this prompt to your code reviewer
 3. Ensure the reviewer has access to:
    - The target module's file system

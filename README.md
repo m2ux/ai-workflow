@@ -1,4 +1,4 @@
-# AI-Augmented Engineering Workflow Automation
+# AI-Augmented Software Engineering Workflow Automation
 
 A curated collection of **prompts**, **methodologies**, and **resources** for enhancing software engineering workflows with AI assistance. This project captures proven techniques for automating and improving common development activities through structured AI collaboration.
 

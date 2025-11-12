@@ -4,29 +4,29 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ STEP 1: IDENTIFY & DEFINE PROBLEM                      │
+│ STEP 1: IDENTIFY & DEFINE PROBLEM                       │
 │ • Problem statement                                     │
 │ • System understanding                                  │
-│ • Impact & success criteria                            │
-│ • Timeline & constraints                               │
+│ • Impact & success criteria                             │
+│ • Timeline & constraints                                │
 │ • Root cause analysis                                   │
 └────────────────┬────────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────┐
-│ STEP 2: SELECT PROBLEM TYPE                            │
+│ STEP 2: SELECT PROBLEM TYPE                             │
 │                                                         │
-│ ┌──────────────────────┐  ┌──────────────────────┐   │
-│ │ SPECIFIC PROBLEM     │  │ INVENTIVE GOAL       │   │
-│ │                      │  │                      │   │
-│ │ • Cause Known        │  │ • Improvement        │   │
-│ │ • Cause Unknown      │  │ • Prevention         │   │
-│ └──────────────────────┘  └──────────────────────┘   │
+│ ┌──────────────────────┐  ┌──────────────────────┐      │
+│ │ SPECIFIC PROBLEM     │  │ INVENTIVE GOAL       │      │
+│ │                      │  │                      │      │
+│ │ • Cause Known        │  │ • Improvement        │      │
+│ │ • Cause Unknown      │  │ • Prevention         │      │
+│ └──────────────────────┘  └──────────────────────┘      │
 └────────────────┬────────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────┐
-│ STEP 3: CONVENTIONAL SOLUTIONS (Inside-the-Box)        │
+│ STEP 3: CONVENTIONAL SOLUTIONS (Inside-the-Box)         │
 │ • Design patterns                                       │
 │ • Best practices                                        │
 │ • Existing solutions                                    │
@@ -37,19 +37,19 @@
                  │
                  ▼ No adequate solution
 ┌─────────────────────────────────────────────────────────┐
-│ STEP 4: INVENTIVE SOLUTIONS (Outside-the-Box)          │
-│ • Identify contradictions                              │
-│ • Apply inventive principles                           │
-│ • Ideal solution thinking                              │
+│ STEP 4: INVENTIVE SOLUTIONS (Outside-the-Box)           │
+│ • Identify contradictions                               │
+│ • Apply inventive principles                            │
+│ • Ideal solution thinking                               │
 │ • Resource utilization                                  │
 └────────────────┬────────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────┐
-│ STEP 5: SOLUTION SYNTHESIS & DESIGN                    │
+│ STEP 5: SOLUTION SYNTHESIS & DESIGN                     │
 │ • Architecture design                                   │
-│ • Design decisions & trade-offs                        │
-│ • Implementation roadmap                               │
+│ • Design decisions & trade-offs                         │
+│ • Implementation roadmap                                │
 │ • Success metrics                                       │
 └─────────────────────────────────────────────────────────┘
 ```

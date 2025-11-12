@@ -170,7 +170,7 @@ Create the review document at:
 ```
 
 **Examples:**
-- For Cardano integration: `.ai/reviews/cardano-integration/2025-08-27-pr43-review-analysis-and-responses.md`
+- For Cardano integration: `.ai/reviews/integration/2025-08-27-pr43-review-analysis-and-responses.md`
 - For general features: `.ai/reviews/2025-08-27-pr123-review-analysis-and-responses.md`
 
 #### 6.2: Document Structure

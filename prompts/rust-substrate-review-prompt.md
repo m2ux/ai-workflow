@@ -386,7 +386,6 @@ After implementing all numbered recommendations, provide:
    - Reference materials and documentation
 
 ### Example Folder Paths:
-- `multichain-engine/src/ada`
 - `toolkit/pallets/session-validator-management`
 - `toolkit/utils/ogmios-client`
 - `node/runtime`
